@@ -29,9 +29,9 @@ DROP TABLE IF EXISTS USER;
 CREATE TABLE
     USER (
         user_id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
-        email VARCHAR(100) UNIQUE,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        email TEXT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP NULL,
         -- Constraints
@@ -49,9 +49,9 @@ CREATE TABLE
 CREATE TABLE
     REGISTRATION_TOKEN (
         token_id INT AUTO_INCREMENT PRIMARY KEY,
-        token_value VARCHAR(64) NOT NULL UNIQUE,
-        ip_address VARCHAR(45) NOT NULL,
-        user_agent VARCHAR(255) NOT NULL,
+        token_value TEXT NOT NULL UNIQUE,
+        ip_address TEXT NOT NULL,
+        user_agent TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP NOT NULL,
         is_used BOOLEAN DEFAULT FALSE,
@@ -68,9 +68,9 @@ CREATE TABLE
     SESSIONS (
         session_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
-        session_token VARCHAR(64) NOT NULL UNIQUE,
-        ip_address VARCHAR(45) NOT NULL,
-        user_agent VARCHAR(255) NOT NULL,
+        session_token TEXT NOT NULL UNIQUE,
+        ip_address TEXT NOT NULL,
+        user_agent TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP NOT NULL,
         is_active BOOLEAN DEFAULT TRUE,
