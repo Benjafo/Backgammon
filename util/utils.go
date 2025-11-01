@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+// ErrorResponse sends a JSON error response
+func ErrorResponse(w http.ResponseWriter, status int, message string) {
+	JSONResponse(w, status, map[string]string{"error": message})
+}
+
 func JSONResponse(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
