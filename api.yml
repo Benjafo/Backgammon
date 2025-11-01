@@ -1,0 +1,802 @@
+openapi: 3.0.3
+info:
+  title: Backgammon Game API
+  description: RESTful API for online backgammon game with real-time chat and lobby system
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User registration and authentication endpoints
+  - name: Lobby
+    description: Lobby presence and user management endpoints
+  - name: Invitations
+    description: Game invitation management endpoints
+
+paths:
+  /api/auth/register/token:
+    post:
+      tags:
+        - Authentication
+      summary: Generate CSRF token for registration
+      description: Creates a registration token tied to the client's IP and user agent to prevent CSRF attacks
+      responses:
+        '200':
+          description: Registration token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationToken'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user account
+      description: Creates a new user account with CSRF token validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '201':
+          description: User account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  value:
+                    error: "Invalid registration token"
+                    message: "Token is invalid, expired, or already used"
+                expiredToken:
+                  value:
+                    error: "Token expired"
+                    message: "Registration token has expired. Please request a new one"
+        '409':
+          description: Conflict - username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                usernameExists:
+                  value:
+                    error: "Username already exists"
+                    message: "The username 'player123' is already taken"
+                emailExists:
+                  value:
+                    error: "Email already exists"
+                    message: "An account with this email already exists"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user and create session
+      description: Validates credentials and creates an authentication session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Invalidate current session and log out
+      description: Terminates the user's current session
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                message: "Logged out successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Validate current session
+      description: Validates the session token and returns current user information
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: Session is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionValidationResponse'
+        '401':
+          description: Unauthorized - invalid or expired session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionValidationResponse'
+              example:
+                valid: false
+                error: "Invalid or expired session token"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/lobby/users:
+    get:
+      tags:
+        - Lobby
+      summary: Get list of users in the lobby
+      description: Returns all users currently present in the lobby
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: List of lobby users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LobbyUsersList'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/lobby/presence:
+    post:
+      tags:
+        - Lobby
+      summary: Join the lobby
+      description: Establishes the user's presence in the lobby
+      security:
+        - SessionToken: []
+      responses:
+        '201':
+          description: Successfully joined the lobby
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LobbyJoinResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict - user already in lobby
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Already in lobby"
+                message: "You are already present in the lobby"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Lobby
+      summary: Leave the lobby
+      description: Removes the user's presence from the lobby
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: Successfully left the lobby
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                message: "Left lobby successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotInLobbyError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/lobby/presence/heartbeat:
+    put:
+      tags:
+        - Lobby
+      summary: Update lobby presence heartbeat
+      description: Updates the last activity timestamp to maintain lobby presence and prevent automatic removal
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: Heartbeat updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotInLobbyError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/invitations:
+    post:
+      tags:
+        - Invitations
+      summary: Send a game invitation
+      description: Send a game invitation to another player in the lobby
+      security:
+        - SessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationRequest'
+      responses:
+        '201':
+          description: Invitation sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationResponse'
+        '400':
+          description: Bad request - invalid invitation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                selfInvite:
+                  value:
+                    error: "Invalid invitation"
+                    message: "You cannot invite yourself to a game"
+                missingUser:
+                  value:
+                    error: "Missing challenged user"
+                    message: "challengedId is required"
+        '404':
+          description: Not found - challenged user does not exist or is not in lobby
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  value:
+                    error: "User not found"
+                    message: "The challenged user does not exist"
+                userNotInLobby:
+                  value:
+                    error: "User not in lobby"
+                    message: "The challenged user is not currently in the lobby"
+        '409':
+          description: Conflict - pending invitation already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invitation already exists"
+                message: "A pending invitation already exists between these players"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Invitations
+      summary: Get all pending invitations
+      description: Retrieve all pending invitations (both sent and received)
+      security:
+        - SessionToken: []
+      responses:
+        '200':
+          description: Invitations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationsList'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/invitations/{id}/accept:
+    put:
+      tags:
+        - Invitations
+      summary: Accept a game invitation
+      description: Accept a pending game invitation and create the game
+      security:
+        - SessionToken: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationId'
+      responses:
+        '200':
+          description: Invitation accepted and game created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationAcceptResponse'
+        '400':
+          $ref: '#/components/responses/InvitationCannotProcessError'
+        '404':
+          $ref: '#/components/responses/InvitationNotFoundError'
+        '410':
+          $ref: '#/components/responses/InvitationExpiredError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/invitations/{id}/decline:
+    put:
+      tags:
+        - Invitations
+      summary: Decline a game invitation
+      description: Decline a pending game invitation
+      security:
+        - SessionToken: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationId'
+      responses:
+        '200':
+          description: Invitation declined successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                message: "Invitation declined"
+        '400':
+          $ref: '#/components/responses/InvitationCannotProcessError'
+        '404':
+          $ref: '#/components/responses/InvitationNotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/invitations/{id}:
+    delete:
+      tags:
+        - Invitations
+      summary: Cancel a sent invitation
+      description: Cancel a pending invitation that was sent (before it has been accepted or declined)
+      security:
+        - SessionToken: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationId'
+      responses:
+        '200':
+          description: Invitation cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                message: "Invitation cancelled"
+        '400':
+          description: Bad request - invitation cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notSender:
+                  value:
+                    error: "Cannot cancel invitation"
+                    message: "You are not the sender of this invitation"
+                alreadyProcessed:
+                  value:
+                    error: "Invitation already processed"
+                    message: "Cannot cancel an invitation that has already been accepted or declined"
+        '404':
+          $ref: '#/components/responses/InvitationNotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type or title
+        message:
+          type: string
+          description: Detailed error message
+
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+
+    User:
+      type: object
+      properties:
+        userId:
+          type: integer
+          example: 42
+        username:
+          type: string
+          example: "player123"
+        email:
+          type: string
+          nullable: true
+          example: "player123@example.com"
+
+    LobbyUser:
+      type: object
+      properties:
+        userId:
+          type: integer
+          example: 42
+        username:
+          type: string
+          example: "player123"
+        joinedAt:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:00:00Z"
+        lastHeartbeat:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:15:30Z"
+
+    RegistrationToken:
+      type: object
+      properties:
+        token:
+          type: string
+          description: CSRF token to include in registration request
+          example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
+        expiresAt:
+          type: string
+          format: date-time
+          description: Token expiration timestamp
+          example: "2025-10-05T15:30:00Z"
+
+    RegistrationRequest:
+      type: object
+      required:
+        - username
+        - password
+        - token
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Desired username (must be unique)
+          example: "player123"
+        password:
+          type: string
+          minLength: 8
+          description: User password (will be hashed)
+          example: "SecurePass123!"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Optional email address
+          example: "player123@example.com"
+        token:
+          type: string
+          description: CSRF token from /api/auth/register/token
+          example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
+
+    RegistrationResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: Newly created user ID
+          example: 42
+        username:
+          type: string
+          example: "player123"
+        message:
+          type: string
+          example: "Account created successfully"
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: User's username
+          example: "player123"
+        password:
+          type: string
+          description: User's password
+          example: "SecurePass123!"
+
+    LoginResponse:
+      type: object
+      properties:
+        sessionToken:
+          type: string
+          description: Session token for authentication
+          example: "s1e2s3s4i5o6n7t8o9k0e1n2a3b4c5d6e7f8g9h0i1j2k3l4m5n6o7p8q9r0"
+        user:
+          $ref: '#/components/schemas/User'
+        expiresAt:
+          type: string
+          format: date-time
+          description: Session expiration timestamp
+          example: "2025-10-06T12:00:00Z"
+
+    SessionValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        user:
+          $ref: '#/components/schemas/User'
+        expiresAt:
+          type: string
+          format: date-time
+          description: Session expiration timestamp
+          example: "2025-10-06T12:00:00Z"
+        error:
+          type: string
+          description: Error message if session is invalid
+
+    LobbyUsersList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyUser'
+        count:
+          type: integer
+          description: Total number of users in lobby
+          example: 2
+
+    LobbyJoinResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Joined lobby successfully"
+        presenceId:
+          type: integer
+          description: Unique identifier for this lobby presence
+          example: 156
+        joinedAt:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:30:00Z"
+
+    HeartbeatResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Heartbeat updated"
+        lastHeartbeat:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:35:00Z"
+
+    Invitation:
+      type: object
+      properties:
+        invitationId:
+          type: integer
+          example: 42
+        challenger:
+          $ref: '#/components/schemas/User'
+        challenged:
+          $ref: '#/components/schemas/User'
+        status:
+          type: string
+          enum: [pending, accepted, declined, expired]
+          example: "pending"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:00:00Z"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:05:00Z"
+
+    InvitationRequest:
+      type: object
+      required:
+        - challengedId
+      properties:
+        challengedId:
+          type: integer
+          description: User ID of the player to invite
+          example: 73
+
+    InvitationResponse:
+      type: object
+      properties:
+        invitationId:
+          type: integer
+          example: 42
+        challengedId:
+          type: integer
+          example: 73
+        status:
+          type: string
+          example: "pending"
+        message:
+          type: string
+          example: "Invitation sent successfully"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2025-10-05T12:05:00Z"
+
+    InvitationsList:
+      type: object
+      properties:
+        sent:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+          description: Invitations sent by the current user
+        received:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+          description: Invitations received by the current user
+
+    InvitationAcceptResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Invitation accepted"
+        gameId:
+          type: integer
+          description: ID of the newly created game
+          example: 123
+
+  parameters:
+    InvitationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Invitation ID
+      example: 42
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized - invalid or missing session token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            message: "Invalid or expired session token"
+
+    BadRequestError:
+      description: Bad request - missing required fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Missing credentials"
+            message: "Username and password are required"
+
+    NotInLobbyError:
+      description: Not found - user not in lobby
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Not in lobby"
+            message: "You must join the lobby before sending heartbeats"
+
+    InvitationNotFoundError:
+      description: Not found - invitation does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invitation not found"
+            message: "The specified invitation does not exist"
+
+    InvitationExpiredError:
+      description: Gone - invitation has expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invitation expired"
+            message: "This invitation has expired"
+
+    InvitationCannotProcessError:
+      description: Bad request - invitation cannot be processed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            notRecipient:
+              value:
+                error: "Cannot accept invitation"
+                message: "You are not the recipient of this invitation"
+            alreadyProcessed:
+              value:
+                error: "Invitation already processed"
+                message: "This invitation has already been accepted or declined"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Session token obtained from login (format: Bearer <token>)

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"backgammon/repository"
 	"backgammon/service"
@@ -48,10 +49,8 @@ func main() {
 	protectedMux.HandleFunc("/api/v1/lobby/presence/heartbeat", service.LobbyPresenceHeartbeatHandler)
 
 	// Invitation endpoints
-	protectedMux.HandleFunc("/api/v1/invitations", service.InvitationsHandler)
-	// protectedMux.HandleFunc("/api/v1/invitations/{:id}", service.CancelInvitationHandler)
-	// protectedMux.HandleFunc("/api/v1/invitations/{:id}/accept", service.AcceptInvitationHandler)
-	// protectedMux.HandleFunc("/api/v1/invitations/{:id}/decline", service.DeclineInvitationHandler)
+	protectedMux.HandleFunc("/api/v1/invitations", service.InvitationRouterHandler)
+	protectedMux.HandleFunc("/api/v1/invitations/", service.InvitationRouterHandler)
 
 	// Game endpoints
 	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
@@ -71,6 +70,35 @@ func main() {
 	// Serve static files
 	fs := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/", fs)
+
+
+	// TODO move cleanup jobs to a separate service
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		log.Println("Started stale lobby presence cleanup job (runs every 30s)")
+		for range ticker.C {
+			count, err := db.CleanupStaleLobbyPresence(context.Background(), 60*time.Second)
+			if err != nil {
+				log.Printf("Failed to cleanup stale lobby presence: %v", err)
+			} else if count > 0 {
+				log.Printf("Removed %d stale lobby presence records", count)
+			}
+		}
+	}()
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		log.Println("Started expired invitation cleanup job (runs every 60s)")
+		for range ticker.C {
+			count, err := db.CleanupExpiredInvitations(context.Background(), 5*time.Minute)
+			if err != nil {
+				log.Printf("Failed to cleanup expired invitations: %v", err)
+			} else if count > 0 {
+				log.Printf("Marked %d invitations as expired", count)
+			}
+		}
+	}()
 
 	log.Println("Server starting on :8080")
 	http.ListenAndServe("0.0.0.0:8080", mux)
