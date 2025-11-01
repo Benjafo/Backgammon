@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: backgammon-postgres
+    environment:
+      POSTGRES_USER: backgammon
+      POSTGRES_PASSWORD: backgammon123
+      POSTGRES_DB: backgammon
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backgammon"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: backgammon-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@backgammon.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backgammon-app
+    environment:
+      DATABASE_URL: postgres://backgammon:backgammon123@postgres:5432/backgammon?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./static:/root/static
+
+volumes:
+  postgres_data:
+  pgadmin_data:

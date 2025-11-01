@@ -8,16 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type postgres struct {
+type Postgres struct {
 	db *pgxpool.Pool
 }
 
 var (
-	pgInstance *postgres
+	pgInstance *Postgres
 	pgOnce     sync.Once
 )
 
-func NewPG(ctx context.Context, connString string) (*postgres, error) {
+func NewPG(ctx context.Context, connString string) (*Postgres, error) {
 	var err error
 
 	pgOnce.Do(func() {
@@ -27,7 +27,7 @@ func NewPG(ctx context.Context, connString string) (*postgres, error) {
 			return
 		}
 
-		pgInstance = &postgres{db}
+		pgInstance = &Postgres{db}
 	})
 
 	if err != nil {
@@ -37,10 +37,17 @@ func NewPG(ctx context.Context, connString string) (*postgres, error) {
 	return pgInstance, nil
 }
 
-func (pg *postgres) Ping(ctx context.Context) error {
+// Ping the database to check connectivity
+func (pg *Postgres) Ping(ctx context.Context) error {
 	return pg.db.Ping(ctx)
 }
 
-func (pg *postgres) Close() {
+// Close the database connection pool
+func (pg *Postgres) Close() {
 	pg.db.Close()
+}
+
+// Return the underlying pgxpool.Pool for executing queries
+func GetDB() *Postgres {
+	return pgInstance
 }

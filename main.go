@@ -1,66 +1,77 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"backgammon/repository"
 	"backgammon/service"
 	"backgammon/util"
 )
 
-func main() {
-	mux := http.NewServeMux()
+var db *repository.Postgres
 
-	// Authentication endpoints
+func main() {
+	// Initialize database connection
+	connString := os.Getenv("DATABASE_URL")
+	db, err := repository.NewPG(context.Background(), connString)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// Ping database to check connection
+	if err := db.Ping(context.Background()); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	log.Println("Database connection established successfully")
+
+	// Routers
+	mux := http.NewServeMux()          // Unprotected endpoints
+	protectedMux := http.NewServeMux() // Protected endpoints (require authentication)
+
+	// Public endpoints
+	mux.HandleFunc("/api/v1/health", service.HealthCheckHandler)
 	mux.HandleFunc("/api/v1/auth/login", service.LoginHandler)
-	mux.HandleFunc("/api/v1/auth/logout", service.LogoutHandler)
 	mux.HandleFunc("/api/v1/auth/register", service.RegisterHandler)
 	mux.HandleFunc("/api/v1/auth/register/token", service.RegisterTokenHandler)
-	mux.HandleFunc("/api/v1/auth/session", service.SessionHandler)
+
+	// Protected auth endpoints
+	protectedMux.HandleFunc("/api/v1/auth/logout", service.LogoutHandler)
+	protectedMux.HandleFunc("/api/v1/auth/session", service.SessionHandler)
 
 	// Lobby endpoints
-	mux.HandleFunc("/api/v1/lobby/users", service.LobbyUsersHandler)
-	mux.HandleFunc("/api/v1/lobby/presence", service.LobbyPresenceHandler)
-	mux.HandleFunc("/api/v1/lobby/presence/heartbeat", service.LobbyPresenceHeartbeatHandler)
+	protectedMux.HandleFunc("/api/v1/lobby/users", service.LobbyUsersHandler)
+	protectedMux.HandleFunc("/api/v1/lobby/presence", service.LobbyPresenceHandler)
+	protectedMux.HandleFunc("/api/v1/lobby/presence/heartbeat", service.LobbyPresenceHeartbeatHandler)
 
 	// Invitation endpoints
-	mux.HandleFunc("/api/v1/invitations", service.InvitationsHandler)
-	// mux.HandleFunc("/api/v1/invitations/{:id}", service.CancelInvitationHandler)
-	// mux.HandleFunc("/api/v1/invitations/{:id}/accept", service.AcceptInvitationHandler)
-	// mux.HandleFunc("/api/v1/invitations/{:id}/decline", service.DeclineInvitationHandler)
+	protectedMux.HandleFunc("/api/v1/invitations", service.InvitationsHandler)
+	// protectedMux.HandleFunc("/api/v1/invitations/{:id}", service.CancelInvitationHandler)
+	// protectedMux.HandleFunc("/api/v1/invitations/{:id}/accept", service.AcceptInvitationHandler)
+	// protectedMux.HandleFunc("/api/v1/invitations/{:id}/decline", service.DeclineInvitationHandler)
 
 	// Game endpoints
-	mux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
-	// mux.HandleFunc("/api/v1/games/{:id}", service.GameHandler)
-	// mux.HandleFunc("/api/v1/games/{:id}/state", service.GameStateHandler)
-	// mux.HandleFunc("/api/v1/games/{:id}/roll", service.RollDiceHandler)
-	// mux.HandleFunc("/api/v1/games/{:id}/moves", service.MoveHandler)
-	// mux.HandleFunc("/api/v1/games/{:id}/forfeit", service.ForfeitHandler)
+	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
+	// protectedMux.HandleFunc("/api/v1/games/{:id}", service.GameHandler)
+	// protectedMux.HandleFunc("/api/v1/games/{:id}/state", service.GameStateHandler)
+	// protectedMux.HandleFunc("/api/v1/games/{:id}/roll", service.RollDiceHandler)
+	// protectedMux.HandleFunc("/api/v1/games/{:id}/moves", service.MoveHandler)
+	// protectedMux.HandleFunc("/api/v1/games/{:id}/forfeit", service.ForfeitHandler)
 
-	// Chat endpoints
-	// mux.HandleFunc("/api/v1/chat/rooms/{:roomId}/messages", service.ChatMessagesHandler)
+	// Chat endpoint
+	// protectedMux.HandleFunc("/api/v1/chat/rooms/{:roomId}/messages", service.ChatMessagesHandler)
 
-	// Using var keyword to specify type explicitly
-	var fs http.Handler
-	fs = http.FileServer(http.Dir("./static/"))
+	// Apply session middleware to protected routes
+	protected := util.SessionMiddleware(protectedMux)
+	mux.Handle("/api/", protected)
+
+	// Serve static files
+	fs := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/", fs)
 
-	// TEST DB CONNECTION
-	mux.HandleFunc("/api/v1/ping", func(w http.ResponseWriter, r *http.Request) {
-		db, error := repository.NewPG(r.Context(), "postgres://myuser:mypassword@localhost:5432/backgammon")
-
-		if error != nil {
-			http.Error(w, "Database connection error: "+error.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		res := db.Ping(r.Context())
-		log.Print(res)
-	})
-
-	// Protect all private routes with authentication middleware
-	protected := util.SessionMiddleware(mux)
-
-	http.ListenAndServe("localhost:8080", protected)
+	log.Println("Server starting on :8080")
+	http.ListenAndServe("0.0.0.0:8080", mux)
 }
