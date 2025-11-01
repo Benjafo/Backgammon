@@ -4,9 +4,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
     plugins: [react()],
     server: {
+        host: '0.0.0.0', // Allow Docker to access
+        port: 5173,
         proxy: {
             "/api": {
-                target: "http://localhost:8080",
+                target: "http://backend-dev:8080", // Docker service name
                 changeOrigin: true,
             },
         },

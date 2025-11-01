@@ -2,7 +2,7 @@ module backgammon
 
 go 1.23.0
 
-toolchain go1.24.9
+toolchain go1.25
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
