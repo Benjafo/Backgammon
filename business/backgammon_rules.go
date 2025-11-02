@@ -158,11 +158,11 @@ func ValidateMove(board []int, fromPoint, toPoint, dieValue int, color Color, ba
 		}
 		// Check if exact roll or highest point
 		expectedTo := CalculateToPoint(fromPoint, dieValue, color)
-		if expectedTo == 0 {
-			// Exact bear off
+		if expectedTo == 0 || expectedTo == 25 {
+			// Exact bear off (white: expectedTo=0, black: expectedTo=25)
 			return nil
 		}
-		if expectedTo < 0 || expectedTo > 24 {
+		if expectedTo < 0 || expectedTo > 25 {
 			// Bearing off with higher die than needed - must be from highest occupied point
 			if !isHighestOccupiedPoint(board, fromPoint, color) {
 				return fmt.Errorf("must bear off from highest occupied point")
@@ -199,15 +199,15 @@ func ValidateMove(board []int, fromPoint, toPoint, dieValue int, color Color, ba
 // isHighestOccupiedPoint checks if this is the highest occupied point for bearing off
 func isHighestOccupiedPoint(board []int, point int, color Color) bool {
 	if color == ColorWhite {
-		// For white, check if there are any checkers on higher points (7-24 or point+1 to 6)
-		for i := point; i <= 6; i++ {
-			if i != point && board[i-1] > 0 {
+		// White moves 24→1, so higher points are those with larger numbers (point+1 to 6)
+		for i := point + 1; i <= 6; i++ {
+			if board[i-1] > 0 {
 				return false
 			}
 		}
 		return true
 	} else {
-		// For black, check if there are any checkers on higher points (19-point-1)
+		// Black moves 1→24, so higher points (furthest from start) are those with smaller numbers in home board (19 to point-1)
 		for i := 19; i < point; i++ {
 			if board[i-1] < 0 {
 				return false
