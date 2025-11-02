@@ -273,22 +273,20 @@ export default function GamePage() {
                 <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
                     {/* Board */}
                     <div>
-                        {gameState && isGameActive ? (
+                        {gameState && gameData.gameStatus !== "pending" ? (
                             <BackgammonBoard
                                 gameState={gameState}
                                 myColor={myColor}
-                                isMyTurn={isMyTurn}
-                                legalMoves={legalMoves}
-                                draggedPoint={draggedPoint}
+                                isMyTurn={isMyTurn && isGameActive}
+                                legalMoves={isGameActive ? legalMoves : []}
+                                draggedPoint={isGameActive ? draggedPoint : null}
                                 onDragStart={handleDragStart}
                                 onDrop={handleDrop}
                             />
                         ) : (
                             <div className="border-2 border-dashed rounded-lg p-12 text-center">
                                 <p className="text-muted-foreground">
-                                    {gameData.gameStatus === "pending"
-                                        ? "Game not started yet"
-                                        : "Game has ended"}
+                                    Game not started yet
                                 </p>
                             </div>
                         )}
