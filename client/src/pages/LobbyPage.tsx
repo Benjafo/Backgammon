@@ -9,10 +9,12 @@ import {
     sendHeartbeat,
     sendInvitation,
 } from "@/api/lobby";
+import { getActiveGames } from "@/api/game";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { type Invitation, type LobbyUser } from "@/types/lobby";
+import type { GameData } from "@/types/game";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -23,6 +25,7 @@ export default function LobbyPage() {
     const [onlineUsers, setOnlineUsers] = useState<LobbyUser[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
+    const [activeGames, setActiveGames] = useState<GameData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -56,13 +59,18 @@ export default function LobbyPage() {
         };
     }, []);
 
-    // Fetch lobby data (users and invitations)
+    // Fetch lobby data (users, invitations, and active games)
     const fetchLobbyData = async () => {
         try {
-            const [users, invitations] = await Promise.all([getLobbyUsers(), getInvitations()]);
+            const [users, invitations, games] = await Promise.all([
+                getLobbyUsers(),
+                getInvitations(),
+                getActiveGames(),
+            ]);
             setOnlineUsers(users);
             setSentInvitations(invitations.sent);
             setReceivedInvitations(invitations.received);
+            setActiveGames(games);
             setError(null);
         } catch (err) {
             console.error("Failed to fetch lobby data:", err);
@@ -181,6 +189,52 @@ export default function LobbyPage() {
                 )}
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Active Games */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Active Games</CardTitle>
+                            <CardDescription>
+                                {activeGames.length} active game{activeGames.length !== 1 ? "s" : ""}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {activeGames.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No active games
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {activeGames.map((game) => {
+                                        const isPlayer1 = game.player1.userId === user?.id;
+                                        const opponent = isPlayer1 ? game.player2 : game.player1;
+                                        const myColor = isPlayer1 ? game.player1.color : game.player2.color;
+
+                                        return (
+                                            <div
+                                                key={game.gameId}
+                                                className="p-3 rounded-md border space-y-2"
+                                            >
+                                                <p className="font-medium">
+                                                    vs {opponent.username}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Playing as {myColor} • {game.gameStatus === "pending" ? "Waiting to start" : "In progress"}
+                                                </p>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => navigate(`/game/${game.gameId}`)}
+                                                    className="w-full"
+                                                >
+                                                    Join Game
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Online Users */}
                     <Card>
                         <CardHeader>
@@ -290,7 +344,7 @@ export default function LobbyPage() {
                         <CardHeader>
                             <CardTitle>Sent Invitations</CardTitle>
                             <CardDescription>
-                                {sentInvitations.length} pending invitation
+                                {sentInvitations.length} invitation
                                 {sentInvitations.length !== 1 ? "s" : ""}
                             </CardDescription>
                         </CardHeader>
@@ -304,23 +358,48 @@ export default function LobbyPage() {
                                             key={invitation.invitationId}
                                             className="p-3 rounded-md border space-y-2"
                                         >
-                                            <p className="font-medium">
-                                                Waiting for {invitation.challenged.username}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Waiting for response...
-                                            </p>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    handleCancel(invitation.invitationId)
-                                                }
-                                                disabled={actionLoading === invitation.invitationId}
-                                                className="w-full"
-                                            >
-                                                Cancel
-                                            </Button>
+                                            {invitation.status === "pending" ? (
+                                                <>
+                                                    <p className="font-medium">
+                                                        Waiting for {invitation.challenged.username}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Waiting for response...
+                                                    </p>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            handleCancel(invitation.invitationId)
+                                                        }
+                                                        disabled={
+                                                            actionLoading === invitation.invitationId
+                                                        }
+                                                        className="w-full"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="font-medium text-primary">
+                                                        {invitation.challenged.username} accepted your
+                                                        challenge!
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Game #{invitation.gameId} is ready
+                                                    </p>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            navigate(`/game/${invitation.gameId}`)
+                                                        }
+                                                        className="w-full"
+                                                    >
+                                                        Join Game
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

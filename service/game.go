@@ -209,10 +209,60 @@ func StartGameHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ActiveGamesHandler returns active games for the current user (stub)
+// ActiveGamesHandler returns active games for the current user
 func ActiveGamesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	db := repository.GetDB()
+	if db == nil {
+		util.ErrorResponse(w, http.StatusInternalServerError, "Database not initialized")
+		return
+	}
+
+	// Get current user ID from context
+	userID, ok := util.GetUserIDFromContext(r.Context())
+	if !ok {
+		util.ErrorResponse(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	// Get active games for user
+	games, err := db.GetActiveGamesForUser(r.Context(), userID)
+	if err != nil {
+		log.Printf("Failed to get active games: %v", err)
+		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to get active games")
+		return
+	}
+
+	// Format game list
+	gamesList := []map[string]interface{}{}
+	for _, game := range games {
+		gamesList = append(gamesList, map[string]interface{}{
+			"gameId": game.GameID,
+			"player1": map[string]interface{}{
+				"userId":   game.Player1ID,
+				"username": game.Player1Username,
+				"color":    game.Player1Color,
+			},
+			"player2": map[string]interface{}{
+				"userId":   game.Player2ID,
+				"username": game.Player2Username,
+				"color":    game.Player2Color,
+			},
+			"currentTurn": game.CurrentTurn,
+			"gameStatus":  game.GameStatus,
+			"winnerId":    game.WinnerID,
+			"createdAt":   game.CreatedAt,
+			"startedAt":   game.StartedAt,
+			"endedAt":     game.EndedAt,
+		})
+	}
+
 	util.JSONResponse(w, http.StatusOK, map[string]interface{}{
-		"games": []interface{}{},
+		"games": gamesList,
 	})
 }
 

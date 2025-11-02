@@ -68,7 +68,7 @@ func (pg *Postgres) CreateInvitation(ctx context.Context, challengerID, challeng
 
 // GetInvitationsByUser retrieves all invitations for a user (both sent and received)
 func (pg *Postgres) GetInvitationsByUser(ctx context.Context, userID int) (sent []InvitationWithUsers, received []InvitationWithUsers, error error) {
-	// Get sent invitations
+	// Get sent invitations (pending only - accepted invitations move to active games)
 	sentQuery := `
 		SELECT
 			gi.invitation_id,

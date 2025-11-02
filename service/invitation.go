@@ -93,6 +93,7 @@ func handleGetInvitations(w http.ResponseWriter, r *http.Request, db *repository
 				"username": inv.ChallengedUsername,
 			},
 			"status":    inv.Status,
+			"gameId":    inv.GameID,
 			"createdAt": inv.CreatedAt,
 		})
 	}
@@ -111,6 +112,7 @@ func handleGetInvitations(w http.ResponseWriter, r *http.Request, db *repository
 				"username": inv.ChallengedUsername,
 			},
 			"status":    inv.Status,
+			"gameId":    inv.GameID,
 			"createdAt": inv.CreatedAt,
 		})
 	}

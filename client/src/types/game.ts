@@ -15,3 +15,7 @@ export interface GameData {
     startedAt: string | null;
     endedAt: string | null;
 }
+
+export interface ActiveGamesResponse {
+    games: GameData[];
+}

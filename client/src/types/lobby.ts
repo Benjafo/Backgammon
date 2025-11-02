@@ -16,6 +16,7 @@ export interface Invitation {
     username: string;
   };
   status: 'pending' | 'accepted' | 'declined' | 'expired';
+  gameId?: number; // Only present when status is 'accepted'
   createdAt: string;
 }
 

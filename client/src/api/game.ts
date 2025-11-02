@@ -1,4 +1,4 @@
-import type { GameData } from "@/types/game";
+import type { ActiveGamesResponse, GameData } from "@/types/game";
 
 const API_BASE = '/api/v1';
 
@@ -41,4 +41,20 @@ export async function startGame(gameId: number): Promise<void> {
     const error = await response.json();
     throw new Error(error.error || 'Failed to start game');
   }
+}
+
+// Get all active games for the current user
+export async function getActiveGames(): Promise<GameData[]> {
+  const response = await fetch(`${API_BASE}/games/active`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to get active games');
+  }
+
+  const data: ActiveGamesResponse = await response.json();
+  return data.games;
 }

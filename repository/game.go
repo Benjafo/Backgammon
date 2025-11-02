@@ -283,3 +283,61 @@ func (pg *Postgres) GetGameWithPlayers(ctx context.Context, gameID int) (*GameWi
 
 	return &game, nil
 }
+
+// GetActiveGamesForUser retrieves all active games for a user
+func (pg *Postgres) GetActiveGamesForUser(ctx context.Context, userID int) ([]GameWithPlayers, error) {
+	query := `
+		SELECT
+			g.game_id,
+			g.player1_id,
+			u1.username as player1_username,
+			g.player1_color,
+			g.player2_id,
+			u2.username as player2_username,
+			g.player2_color,
+			g.current_turn,
+			g.game_status,
+			g.winner_id,
+			g.created_at,
+			g.started_at,
+			g.ended_at
+		FROM GAME g
+		JOIN "USER" u1 ON g.player1_id = u1.user_id
+		JOIN "USER" u2 ON g.player2_id = u2.user_id
+		WHERE (g.player1_id = $1 OR g.player2_id = $1)
+		  AND g.game_status IN ('pending', 'in_progress')
+		ORDER BY g.created_at DESC
+	`
+
+	rows, err := pg.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active games: %w", err)
+	}
+	defer rows.Close()
+
+	games := []GameWithPlayers{}
+	for rows.Next() {
+		var game GameWithPlayers
+		err := rows.Scan(
+			&game.GameID,
+			&game.Player1ID,
+			&game.Player1Username,
+			&game.Player1Color,
+			&game.Player2ID,
+			&game.Player2Username,
+			&game.Player2Color,
+			&game.CurrentTurn,
+			&game.GameStatus,
+			&game.WinnerID,
+			&game.CreatedAt,
+			&game.StartedAt,
+			&game.EndedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan active game: %w", err)
+		}
+		games = append(games, game)
+	}
+
+	return games, nil
+}
