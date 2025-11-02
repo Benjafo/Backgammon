@@ -69,7 +69,20 @@ export default function BackgammonBoard({
 
     // Find which point is at a given position
     const findPointAtPosition = (x: number, y: number): number | null => {
-        // Check bar first
+        // Check bear-off zones (point 25)
+        // White bear-off should be near white's home (points 1-6, right side)
+        // Black bear-off should be near black's home (points 19-24, left side)
+
+        // Left side bear-off zone (for white)
+        if (myColor === "white" && x >= 10 && x <= 80 && y >= BOARD_HEIGHT / 2 - 60 && y <= BOARD_HEIGHT / 2 + 60) {
+            return 25;
+        }
+        // Right side bear-off zone (for black)
+        if (myColor === "black" && x >= BOARD_WIDTH - 80 && x <= BOARD_WIDTH - 10 && y >= BOARD_HEIGHT / 2 - 60 && y <= BOARD_HEIGHT / 2 + 60) {
+            return 25;
+        }
+
+        // Check bar
         const barX = BOARD_WIDTH / 2 - 25;
         if (x >= barX && x <= barX + 50 && y >= 50 && y <= BOARD_HEIGHT - 50) {
             return 0;
@@ -310,21 +323,25 @@ export default function BackgammonBoard({
 
     // Render borne-off areas
     const renderBorneOff = () => {
+        const isBearOffDestination = isValidDestination(25);
+
         return (
             <g>
-                {/* White borne off (right side) */}
+                {/* White borne off (left side) */}
                 <rect
-                    x={BOARD_WIDTH - 80}
+                    x={10}
                     y={BOARD_HEIGHT / 2 - 60}
                     width={70}
                     height={120}
-                    fill="#E0E0E0"
+                    fill={isBearOffDestination && myColor === "white" ? "#90EE90" : "#E0E0E0"}
                     stroke="#000"
                     strokeWidth="2"
                     rx="5"
+                    opacity={isBearOffDestination && myColor === "white" ? 0.7 : 1}
+                    style={{ cursor: isBearOffDestination && myColor === "white" ? "pointer" : "default" }}
                 />
                 <text
-                    x={BOARD_WIDTH - 45}
+                    x={45}
                     y={BOARD_HEIGHT / 2 - 70}
                     textAnchor="middle"
                     fill="#666"
@@ -333,7 +350,7 @@ export default function BackgammonBoard({
                     White Off
                 </text>
                 <text
-                    x={BOARD_WIDTH - 45}
+                    x={45}
                     y={BOARD_HEIGHT / 2}
                     textAnchor="middle"
                     fontSize="24"
@@ -342,19 +359,21 @@ export default function BackgammonBoard({
                     {gameState.bornedOffWhite}
                 </text>
 
-                {/* Black borne off (left side) */}
+                {/* Black borne off (right side) */}
                 <rect
-                    x={10}
+                    x={BOARD_WIDTH - 80}
                     y={BOARD_HEIGHT / 2 - 60}
                     width={70}
                     height={120}
-                    fill="#E0E0E0"
+                    fill={isBearOffDestination && myColor === "black" ? "#90EE90" : "#E0E0E0"}
                     stroke="#000"
                     strokeWidth="2"
                     rx="5"
+                    opacity={isBearOffDestination && myColor === "black" ? 0.7 : 1}
+                    style={{ cursor: isBearOffDestination && myColor === "black" ? "pointer" : "default" }}
                 />
                 <text
-                    x={45}
+                    x={BOARD_WIDTH - 45}
                     y={BOARD_HEIGHT / 2 - 70}
                     textAnchor="middle"
                     fill="#666"
@@ -363,7 +382,7 @@ export default function BackgammonBoard({
                     Black Off
                 </text>
                 <text
-                    x={45}
+                    x={BOARD_WIDTH - 45}
                     y={BOARD_HEIGHT / 2}
                     textAnchor="middle"
                     fontSize="24"
@@ -380,21 +399,21 @@ export default function BackgammonBoard({
         const barWidth = 50;
 
         if (pointNum >= 13 && pointNum <= 18) {
-            // Right side, top - 18, 17, 16, 15, 14, 13 from left to right
+            // Left side, top - 13, 14, 15, 16, 17, 18 from left to right
             const offset = 18 - pointNum;
-            return barX + barWidth + offset * POINT_WIDTH;
+            return barX - POINT_WIDTH - offset * POINT_WIDTH;
         } else if (pointNum >= 19 && pointNum <= 24) {
-            // Left side, top - 24, 23, 22, 21, 20, 19 from left to right
+            // Right side, top - 19, 20, 21, 22, 23, 24 from left to right
             const offset = pointNum - 19;
-            return barX - POINT_WIDTH - offset * POINT_WIDTH;
-        } else if (pointNum >= 7 && pointNum <= 12) {
-            // Right side, bottom - 7, 8, 9, 10, 11, 12 from left to right
-            const offset = pointNum - 7;
             return barX + barWidth + offset * POINT_WIDTH;
-        } else {
-            // Left side, bottom - 1, 2, 3, 4, 5, 6 from left to right
-            const offset = 6 - pointNum;
+        } else if (pointNum >= 7 && pointNum <= 12) {
+            // Left side, bottom - 12, 11, 10, 9, 8, 7 from left to right
+            const offset = pointNum - 7;
             return barX - POINT_WIDTH - offset * POINT_WIDTH;
+        } else {
+            // Right side, bottom - 6, 5, 4, 3, 2, 1 from left to right
+            const offset = 6 - pointNum;
+            return barX + barWidth + offset * POINT_WIDTH;
         }
     };
 

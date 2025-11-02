@@ -365,20 +365,30 @@ type GameState struct {
 
 // InitializeGameState creates the initial board state for a new game
 func (pg *Postgres) InitializeGameState(ctx context.Context, gameID int) error {
+	// TESTING SETUP: Both players have checkers in home board for testing bear-off
+	// White home: points 1-6, Black home: points 19-24
+	// Using array indices 0-23 for points 1-24
+	initialBoard := make([]int, 24)
+	initialBoard[3] = 5    // Point 4: 5 white
+	initialBoard[4] = 5    // Point 5: 5 white
+	initialBoard[5] = 5    // Point 6: 5 white
+	initialBoard[18] = -5  // Point 19: 5 black
+	initialBoard[19] = -5  // Point 20: 5 black
+	initialBoard[20] = -5  // Point 21: 5 black
+
+	// ORIGINAL SETUP (commented out for testing):
 	// Initial backgammon setup (standard):
 	// White moves from 24->1 (counterclockwise), Black moves from 1->24 (clockwise)
 	// Point 1: 2 black, Point 6: 5 white, Point 8: 3 white, Point 12: 5 black
 	// Point 13: 5 white, Point 17: 3 black, Point 19: 5 black, Point 24: 2 white
-	// Using array indices 0-23 for points 1-24
-	initialBoard := make([]int, 24)
-	initialBoard[0] = -2   // Point 1: 2 black
-	initialBoard[5] = 5    // Point 6: 5 white
-	initialBoard[7] = 3    // Point 8: 3 white
-	initialBoard[11] = -5  // Point 12: 5 black
-	initialBoard[12] = 5   // Point 13: 5 white
-	initialBoard[16] = -3  // Point 17: 3 black
-	initialBoard[18] = -5  // Point 19: 5 black
-	initialBoard[23] = 2   // Point 24: 2 white
+	// initialBoard[0] = -2   // Point 1: 2 black
+	// initialBoard[5] = 5    // Point 6: 5 white
+	// initialBoard[7] = 3    // Point 8: 3 white
+	// initialBoard[11] = -5  // Point 12: 5 black
+	// initialBoard[12] = 5   // Point 13: 5 white
+	// initialBoard[16] = -3  // Point 17: 3 black
+	// initialBoard[18] = -5  // Point 19: 5 black
+	// initialBoard[23] = 2   // Point 24: 2 white
 
 	boardJSON, err := json.Marshal(initialBoard)
 	if err != nil {

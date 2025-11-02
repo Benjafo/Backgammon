@@ -10,13 +10,16 @@ export default defineConfig({
         },
     },
     server: {
-        host: '0.0.0.0', // Allow Docker to access
+        host: "0.0.0.0", // Allow Docker to access
         port: 5173,
         proxy: {
             "/api": {
                 target: "http://backend-dev:8080", // Docker service name
                 changeOrigin: true,
             },
+        },
+        watch: {
+            usePolling: true,
         },
     },
     build: {
