@@ -44,7 +44,8 @@ export default function BackgammonBoard({
 
         const isSelected = selectedPoint === pointNum;
         const isDestination = isValidDestination(pointNum);
-        const hasMyChecker = (myColor === "white" && checkerCount > 0) || (myColor === "black" && checkerCount < 0);
+        const hasMyChecker =
+            (myColor === "white" && checkerCount > 0) || (myColor === "black" && checkerCount < 0);
         const isClickable = isMyTurn && hasMyChecker;
 
         // Calculate triangle points
@@ -73,7 +74,9 @@ export default function BackgammonBoard({
                 {checkerColor && absCount > 0 && (
                     <>
                         {Array.from({ length: Math.min(absCount, 5) }).map((_, i) => {
-                            const cy = isTop ? y + 30 + i * (CHECKER_RADIUS * 2 + 2) : y - 30 - i * (CHECKER_RADIUS * 2 + 2);
+                            const cy = isTop
+                                ? y + 30 + i * (CHECKER_RADIUS * 2 + 2)
+                                : y - 30 - i * (CHECKER_RADIUS * 2 + 2);
                             return (
                                 <circle
                                     key={`checker-${pointNum}-${i}`}
@@ -92,7 +95,11 @@ export default function BackgammonBoard({
                         {absCount > 5 && (
                             <text
                                 x={xPosition + POINT_WIDTH / 2}
-                                y={isTop ? y + 30 + 4 * (CHECKER_RADIUS * 2 + 2) : y - 30 - 4 * (CHECKER_RADIUS * 2 + 2)}
+                                y={
+                                    isTop
+                                        ? y + 30 + 4 * (CHECKER_RADIUS * 2 + 2)
+                                        : y - 30 - 4 * (CHECKER_RADIUS * 2 + 2)
+                                }
                                 textAnchor="middle"
                                 fill={checkerColor === "white" ? "#000" : "#FFF"}
                                 fontSize="14"
@@ -163,7 +170,13 @@ export default function BackgammonBoard({
                             />
                         ))}
                         {whiteCount > 3 && (
-                            <text x={barX + 25} y={BOARD_HEIGHT / 2 - 40} textAnchor="middle" fontSize="14" fontWeight="bold">
+                            <text
+                                x={barX + 25}
+                                y={BOARD_HEIGHT / 2 - 40}
+                                textAnchor="middle"
+                                fontSize="14"
+                                fontWeight="bold"
+                            >
                                 {whiteCount}
                             </text>
                         )}
@@ -187,7 +200,14 @@ export default function BackgammonBoard({
                             />
                         ))}
                         {blackCount > 3 && (
-                            <text x={barX + 25} y={BOARD_HEIGHT / 2 + 120} textAnchor="middle" fill="#FFF" fontSize="14" fontWeight="bold">
+                            <text
+                                x={barX + 25}
+                                y={BOARD_HEIGHT / 2 + 120}
+                                textAnchor="middle"
+                                fill="#FFF"
+                                fontSize="14"
+                                fontWeight="bold"
+                            >
                                 {blackCount}
                             </text>
                         )}
@@ -202,48 +222,97 @@ export default function BackgammonBoard({
         return (
             <g>
                 {/* White borne off (right side) */}
-                <rect x={BOARD_WIDTH - 80} y={BOARD_HEIGHT / 2 - 60} width={70} height={120} fill="#E0E0E0" stroke="#000" strokeWidth="2" rx="5" />
-                <text x={BOARD_WIDTH - 45} y={BOARD_HEIGHT / 2 - 70} textAnchor="middle" fill="#666" fontSize="12">
+                <rect
+                    x={BOARD_WIDTH - 80}
+                    y={BOARD_HEIGHT / 2 - 60}
+                    width={70}
+                    height={120}
+                    fill="#E0E0E0"
+                    stroke="#000"
+                    strokeWidth="2"
+                    rx="5"
+                />
+                <text
+                    x={BOARD_WIDTH - 45}
+                    y={BOARD_HEIGHT / 2 - 70}
+                    textAnchor="middle"
+                    fill="#666"
+                    fontSize="12"
+                >
                     White Off
                 </text>
-                <text x={BOARD_WIDTH - 45} y={BOARD_HEIGHT / 2} textAnchor="middle" fontSize="24" fontWeight="bold">
+                <text
+                    x={BOARD_WIDTH - 45}
+                    y={BOARD_HEIGHT / 2}
+                    textAnchor="middle"
+                    fontSize="24"
+                    fontWeight="bold"
+                >
                     {gameState.bornedOffWhite}
                 </text>
 
                 {/* Black borne off (left side) */}
-                <rect x={10} y={BOARD_HEIGHT / 2 - 60} width={70} height={120} fill="#E0E0E0" stroke="#000" strokeWidth="2" rx="5" />
-                <text x={45} y={BOARD_HEIGHT / 2 - 70} textAnchor="middle" fill="#666" fontSize="12">
+                <rect
+                    x={10}
+                    y={BOARD_HEIGHT / 2 - 60}
+                    width={70}
+                    height={120}
+                    fill="#E0E0E0"
+                    stroke="#000"
+                    strokeWidth="2"
+                    rx="5"
+                />
+                <text
+                    x={45}
+                    y={BOARD_HEIGHT / 2 - 70}
+                    textAnchor="middle"
+                    fill="#666"
+                    fontSize="12"
+                >
                     Black Off
                 </text>
-                <text x={45} y={BOARD_HEIGHT / 2} textAnchor="middle" fontSize="24" fontWeight="bold">
+                <text
+                    x={45}
+                    y={BOARD_HEIGHT / 2}
+                    textAnchor="middle"
+                    fontSize="24"
+                    fontWeight="bold"
+                >
                     {gameState.bornedOffBlack}
                 </text>
             </g>
         );
     };
 
-    // Calculate x positions for points
     const getPointX = (pointNum: number): number => {
-        const leftMargin = 100;
+        const barX = BOARD_WIDTH / 2 - 25;
         const barWidth = 50;
 
         if (pointNum >= 13 && pointNum <= 18) {
-            // Right quadrant, top
-            return leftMargin + (18 - pointNum) * POINT_WIDTH;
+            // Right side, top - 18, 17, 16, 15, 14, 13 from left to right
+            const offset = 18 - pointNum;
+            return barX + barWidth + offset * POINT_WIDTH;
         } else if (pointNum >= 19 && pointNum <= 24) {
-            // Right quadrant, bottom
-            return leftMargin + (24 - pointNum) * POINT_WIDTH;
+            // Left side, top - 24, 23, 22, 21, 20, 19 from left to right
+            const offset = 24 - pointNum;
+            return barX - POINT_WIDTH - offset * POINT_WIDTH;
         } else if (pointNum >= 7 && pointNum <= 12) {
-            // Left quadrant, top
-            return leftMargin + barWidth + (12 - pointNum) * POINT_WIDTH;
+            // Right side, bottom - 7, 8, 9, 10, 11, 12 from left to right
+            const offset = pointNum - 7;
+            return barX + barWidth + offset * POINT_WIDTH;
         } else {
-            // Left quadrant, bottom (1-6)
-            return leftMargin + barWidth + (6 - pointNum) * POINT_WIDTH;
+            // Left side, bottom - 1, 2, 3, 4, 5, 6 from left to right
+            const offset = pointNum - 1;
+            return barX - POINT_WIDTH - offset * POINT_WIDTH;
         }
     };
 
     return (
-        <svg width={BOARD_WIDTH} height={BOARD_HEIGHT} className="border-2 border-gray-800 rounded-lg bg-amber-100">
+        <svg
+            width={BOARD_WIDTH}
+            height={BOARD_HEIGHT}
+            className="border-2 border-gray-800 rounded-lg bg-amber-100"
+        >
             {/* Board background */}
             <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#DEB887" />
 
@@ -264,9 +333,16 @@ export default function BackgammonBoard({
             {/* Dice display */}
             {gameState.diceRoll && (
                 <g>
-                    <text x={BOARD_WIDTH / 2} y={BOARD_HEIGHT - 20} textAnchor="middle" fontSize="18" fontWeight="bold">
+                    <text
+                        x={BOARD_WIDTH / 2}
+                        y={BOARD_HEIGHT - 20}
+                        textAnchor="middle"
+                        fontSize="18"
+                        fontWeight="bold"
+                    >
                         Dice: {gameState.diceRoll[0]}
-                        {gameState.diceUsed && gameState.diceUsed[0] && " (used)"}, {gameState.diceRoll[1]}
+                        {gameState.diceUsed && gameState.diceUsed[0] && " (used)"},{" "}
+                        {gameState.diceRoll[1]}
                         {gameState.diceUsed && gameState.diceUsed[1] && " (used)"}
                     </text>
                 </g>
