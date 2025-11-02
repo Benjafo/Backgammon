@@ -54,11 +54,7 @@ func main() {
 
 	// Game endpoints
 	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
-	// protectedMux.HandleFunc("/api/v1/games/{:id}", service.GameHandler)
-	// protectedMux.HandleFunc("/api/v1/games/{:id}/state", service.GameStateHandler)
-	// protectedMux.HandleFunc("/api/v1/games/{:id}/roll", service.RollDiceHandler)
-	// protectedMux.HandleFunc("/api/v1/games/{:id}/moves", service.MoveHandler)
-	// protectedMux.HandleFunc("/api/v1/games/{:id}/forfeit", service.ForfeitHandler)
+	protectedMux.HandleFunc("/api/v1/games/", service.GameRouterHandler)
 
 	// Chat endpoint
 	// protectedMux.HandleFunc("/api/v1/chat/rooms/{:roomId}/messages", service.ChatMessagesHandler)

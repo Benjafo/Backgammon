@@ -137,3 +137,149 @@ func (pg *Postgres) UpdateGameStatus(ctx context.Context, gameID int, status str
 
 	return nil
 }
+
+// ForfeitGame marks a game as abandoned with the opponent as winner
+func (pg *Postgres) ForfeitGame(ctx context.Context, gameID int, forfeitingPlayerID int) error {
+	// Get game details to determine the winner
+	game, err := pg.GetGameByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Determine the winner (the other player)
+	var winnerID int
+	if game.Player1ID == forfeitingPlayerID {
+		winnerID = game.Player2ID
+	} else if game.Player2ID == forfeitingPlayerID {
+		winnerID = game.Player1ID
+	} else {
+		return fmt.Errorf("player not in this game")
+	}
+
+	// Update game as abandoned with winner
+	query := `
+		UPDATE GAME
+		SET game_status = 'abandoned',
+		    winner_id = $2,
+		    ended_at = NOW()
+		WHERE game_id = $1
+	`
+
+	_, err = pg.db.Exec(ctx, query, gameID, winnerID)
+	if err != nil {
+		return fmt.Errorf("failed to forfeit game: %w", err)
+	}
+
+	return nil
+}
+
+// CompleteGame marks a game as completed with a winner
+func (pg *Postgres) CompleteGame(ctx context.Context, gameID int, winnerID int) error {
+	// Verify the winner is a player in this game
+	game, err := pg.GetGameByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	if winnerID != game.Player1ID && winnerID != game.Player2ID {
+		return fmt.Errorf("winner must be a player in this game")
+	}
+
+	query := `
+		UPDATE GAME
+		SET game_status = 'completed',
+		    winner_id = $2,
+		    ended_at = NOW()
+		WHERE game_id = $1
+	`
+
+	_, err = pg.db.Exec(ctx, query, gameID, winnerID)
+	if err != nil {
+		return fmt.Errorf("failed to complete game: %w", err)
+	}
+
+	return nil
+}
+
+// StartGame marks a game as in_progress
+func (pg *Postgres) StartGame(ctx context.Context, gameID int) error {
+	query := `
+		UPDATE GAME
+		SET game_status = 'in_progress',
+		    started_at = NOW()
+		WHERE game_id = $1 AND game_status = 'pending'
+	`
+
+	result, err := pg.db.Exec(ctx, query, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to start game: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("game not found or already started")
+	}
+
+	return nil
+}
+
+// GetGameWithPlayers retrieves a game with player usernames
+type GameWithPlayers struct {
+	GameID         int
+	Player1ID      int
+	Player1Username string
+	Player1Color   string
+	Player2ID      int
+	Player2Username string
+	Player2Color   string
+	CurrentTurn    int
+	GameStatus     string
+	WinnerID       *int
+	CreatedAt      time.Time
+	StartedAt      *time.Time
+	EndedAt        *time.Time
+}
+
+func (pg *Postgres) GetGameWithPlayers(ctx context.Context, gameID int) (*GameWithPlayers, error) {
+	query := `
+		SELECT
+			g.game_id,
+			g.player1_id,
+			u1.username as player1_username,
+			g.player1_color,
+			g.player2_id,
+			u2.username as player2_username,
+			g.player2_color,
+			g.current_turn,
+			g.game_status,
+			g.winner_id,
+			g.created_at,
+			g.started_at,
+			g.ended_at
+		FROM GAME g
+		JOIN "USER" u1 ON g.player1_id = u1.user_id
+		JOIN "USER" u2 ON g.player2_id = u2.user_id
+		WHERE g.game_id = $1
+	`
+
+	var game GameWithPlayers
+	err := pg.db.QueryRow(ctx, query, gameID).Scan(
+		&game.GameID,
+		&game.Player1ID,
+		&game.Player1Username,
+		&game.Player1Color,
+		&game.Player2ID,
+		&game.Player2Username,
+		&game.Player2Color,
+		&game.CurrentTurn,
+		&game.GameStatus,
+		&game.WinnerID,
+		&game.CreatedAt,
+		&game.StartedAt,
+		&game.EndedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get game with players: %w", err)
+	}
+
+	return &game, nil
+}

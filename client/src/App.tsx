@@ -1,6 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicRoute } from "@/components/PublicRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
+import GamePage from "@/pages/GamePage";
 import LobbyPage from "@/pages/LobbyPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -35,6 +36,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <LobbyPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/game/:gameId"
+                        element={
+                            <ProtectedRoute>
+                                <GamePage />
                             </ProtectedRoute>
                         }
                     />
