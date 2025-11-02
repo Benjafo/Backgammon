@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { GameState, LegalMove } from "@/types/game";
+import { useState } from "react";
 
 interface BackgammonBoardProps {
     gameState: GameState;
