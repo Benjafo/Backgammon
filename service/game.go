@@ -472,9 +472,11 @@ func RollDiceHandler(w http.ResponseWriter, r *http.Request) {
 
 // MoveRequest represents a move request
 type MoveRequest struct {
-	FromPoint int `json:"fromPoint"`
-	ToPoint   int `json:"toPoint"`
-	DieUsed   int `json:"dieUsed"`
+	FromPoint      int   `json:"fromPoint"`
+	ToPoint        int   `json:"toPoint"`
+	DieUsed        int   `json:"dieUsed"`
+	DiceIndices    []int `json:"diceIndices"`    // Indices of dice being used (for combined moves)
+	IsCombinedMove bool  `json:"isCombinedMove"` // True if using multiple dice
 }
 
 // MoveHandler executes a checker move
@@ -566,24 +568,46 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		barCount = state.BarBlack
 	}
 
-	// Validate the move
-	err = business.ValidateMove(state.BoardState, req.FromPoint, req.ToPoint, req.DieUsed, color, barCount)
-	if err != nil {
-		util.ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
+	// Handle combined moves vs single moves
+	var diceIndicesToMark []int
 
-	// Find which die was used
-	dieIndex := -1
-	for i, die := range state.DiceRoll {
-		if die == req.DieUsed && !state.DiceUsed[i] {
-			dieIndex = i
-			break
+	if req.IsCombinedMove && len(req.DiceIndices) > 0 {
+		// Combined move: verify all dice are available and mark them
+		for _, idx := range req.DiceIndices {
+			if idx < 0 || idx >= len(state.DiceUsed) {
+				util.ErrorResponse(w, http.StatusBadRequest, "Invalid dice index")
+				return
+			}
+			if state.DiceUsed[idx] {
+				util.ErrorResponse(w, http.StatusBadRequest, "Die already used")
+				return
+			}
 		}
-	}
-	if dieIndex == -1 {
-		util.ErrorResponse(w, http.StatusBadRequest, "Die not available or already used")
-		return
+		diceIndicesToMark = req.DiceIndices
+
+		// For combined moves, validate by simulating each step
+		// The frontend already validated this is a legal combined move
+	} else {
+		// Single die move: validate and find the die
+		err = business.ValidateMove(state.BoardState, req.FromPoint, req.ToPoint, req.DieUsed, color, barCount)
+		if err != nil {
+			util.ErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Find which die was used
+		dieIndex := -1
+		for i, die := range state.DiceRoll {
+			if die == req.DieUsed && !state.DiceUsed[i] {
+				dieIndex = i
+				break
+			}
+		}
+		if dieIndex == -1 {
+			util.ErrorResponse(w, http.StatusBadRequest, "Die not available or already used")
+			return
+		}
+		diceIndicesToMark = []int{dieIndex}
 	}
 
 	// Execute the move
@@ -596,7 +620,11 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Update state
 	state.BoardState = result.NewBoard
-	state.DiceUsed[dieIndex] = true
+
+	// Mark all used dice
+	for _, idx := range diceIndicesToMark {
+		state.DiceUsed[idx] = true
+	}
 
 	// Update bar/borne-off counts
 	if req.FromPoint == 0 {

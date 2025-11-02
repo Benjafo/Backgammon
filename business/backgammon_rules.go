@@ -14,15 +14,23 @@ const (
 
 // LegalMove represents a valid move option
 type LegalMove struct {
-	FromPoint int // 0=bar, 1-24=board points, 25=bear off
-	ToPoint   int
-	DieUsed   int
+	FromPoint      int   // 0=bar, 1-24=board points, 25=bear off
+	ToPoint        int
+	DieUsed        int   // Sum of dice values used (e.g., 4 for a 1+3 combined move)
+	DiceIndices    []int // Indices of dice being used (for combined moves)
+	IsCombinedMove bool  // True if this move uses multiple dice
 }
 
 // MoveResult contains the outcome of executing a move
 type MoveResult struct {
 	NewBoard    []int
 	HitOpponent bool
+}
+
+// indexedDie represents a die value with its index in the dice array
+type indexedDie struct {
+	value int
+	index int
 }
 
 // ============================================================================
@@ -293,11 +301,11 @@ func ExecuteMove(board []int, fromPoint, toPoint int, color Color) (*MoveResult,
 func GetLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCount, bornedOff int) []LegalMove {
 	legalMoves := []LegalMove{}
 
-	// Get available dice
-	availableDice := []int{}
+	// Get available dice with their indices
+	availableDice := []indexedDie{}
 	for i, used := range diceUsed {
 		if !used {
-			availableDice = append(availableDice, dice[i])
+			availableDice = append(availableDice, indexedDie{value: dice[i], index: i})
 		}
 	}
 
@@ -305,21 +313,23 @@ func GetLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCou
 		return legalMoves
 	}
 
-	// If on bar, only can enter
+	// If on bar, only can enter (no combined moves from bar)
 	if barCount > 0 {
 		for _, die := range availableDice {
 			var entryPoint int
 			if color == ColorWhite {
-				entryPoint = 25 - die
+				entryPoint = 25 - die.value
 			} else {
-				entryPoint = die
+				entryPoint = die.value
 			}
 
 			if IsPointOpen(board, entryPoint, color) {
 				legalMoves = append(legalMoves, LegalMove{
-					FromPoint: 0,
-					ToPoint:   entryPoint,
-					DieUsed:   die,
+					FromPoint:      0,
+					ToPoint:        entryPoint,
+					DieUsed:        die.value,
+					DiceIndices:    []int{die.index},
+					IsCombinedMove: false,
 				})
 			}
 		}
@@ -329,45 +339,157 @@ func GetLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCou
 	// Check if can bear off
 	canBear := CanBearOff(board, color, barCount)
 
-	// Try all possible moves
+	// Try moves for each point with checkers
 	for point := 1; point <= 24; point++ {
 		if CountCheckersOnPoint(board, point, color) == 0 {
 			continue
 		}
 
-		for _, die := range availableDice {
-			toPoint := CalculateToPoint(point, die, color)
+		// Try all possible combinations of available dice (1 die, 2 dice, 3 dice, 4 dice)
+		for numDice := 1; numDice <= len(availableDice); numDice++ {
+			// Generate all combinations of numDice from availableDice
+			combinations := generateCombinations(availableDice, numDice)
 
-			// Try bearing off
-			if canBear {
-				if toPoint <= 0 || toPoint >= 25 {
-					// Bearing off
-					err := ValidateMove(board, point, 25, die, color, barCount)
-					if err == nil {
-						legalMoves = append(legalMoves, LegalMove{
-							FromPoint: point,
-							ToPoint:   25,
-							DieUsed:   die,
-						})
-					}
+			for _, combo := range combinations {
+				// Calculate total value and indices
+				totalValue := 0
+				indices := []int{}
+				for _, die := range combo {
+					totalValue += die.value
+					indices = append(indices, die.index)
 				}
-			}
 
-			// Regular move
-			if toPoint >= 1 && toPoint <= 24 {
-				err := ValidateMove(board, point, toPoint, die, color, barCount)
-				if err == nil {
-					legalMoves = append(legalMoves, LegalMove{
-						FromPoint: point,
-						ToPoint:   toPoint,
-						DieUsed:   die,
-					})
+				// For single die moves, use existing logic
+				if numDice == 1 {
+					toPoint := CalculateToPoint(point, totalValue, color)
+
+					// Try bearing off
+					if canBear && (toPoint <= 0 || toPoint >= 25) {
+						err := ValidateMove(board, point, 25, totalValue, color, barCount)
+						if err == nil {
+							legalMoves = append(legalMoves, LegalMove{
+								FromPoint:      point,
+								ToPoint:        25,
+								DieUsed:        totalValue,
+								DiceIndices:    indices,
+								IsCombinedMove: false,
+							})
+						}
+					}
+
+					// Regular move
+					if toPoint >= 1 && toPoint <= 24 {
+						err := ValidateMove(board, point, toPoint, totalValue, color, barCount)
+						if err == nil {
+							legalMoves = append(legalMoves, LegalMove{
+								FromPoint:      point,
+								ToPoint:        toPoint,
+								DieUsed:        totalValue,
+								DiceIndices:    indices,
+								IsCombinedMove: false,
+							})
+						}
+					}
+				} else {
+					// Combined move: validate sequence of moves
+					if trySequentialMove(board, point, combo, color, barCount, canBear) {
+						finalPoint := CalculateToPoint(point, totalValue, color)
+
+						// Determine final destination
+						if canBear && (finalPoint <= 0 || finalPoint >= 25) {
+							legalMoves = append(legalMoves, LegalMove{
+								FromPoint:      point,
+								ToPoint:        25,
+								DieUsed:        totalValue,
+								DiceIndices:    indices,
+								IsCombinedMove: true,
+							})
+						} else if finalPoint >= 1 && finalPoint <= 24 {
+							legalMoves = append(legalMoves, LegalMove{
+								FromPoint:      point,
+								ToPoint:        finalPoint,
+								DieUsed:        totalValue,
+								DiceIndices:    indices,
+								IsCombinedMove: true,
+							})
+						}
+					}
 				}
 			}
 		}
 	}
 
 	return legalMoves
+}
+
+// generateCombinations generates all combinations of n dice from the available dice
+func generateCombinations(dice []indexedDie, n int) [][]indexedDie {
+	result := [][]indexedDie{}
+	if n == 0 {
+		return result
+	}
+	if n > len(dice) {
+		return result
+	}
+
+	var generate func(start int, current []indexedDie)
+	generate = func(start int, current []indexedDie) {
+		if len(current) == n {
+			combo := make([]indexedDie, n)
+			copy(combo, current)
+			result = append(result, combo)
+			return
+		}
+
+		for i := start; i < len(dice); i++ {
+			generate(i+1, append(current, dice[i]))
+		}
+	}
+
+	generate(0, []indexedDie{})
+	return result
+}
+
+// trySequentialMove validates a sequence of moves using multiple dice
+func trySequentialMove(board []int, fromPoint int, dice []indexedDie, color Color, barCount int, canBear bool) bool {
+	currentBoard := make([]int, len(board))
+	copy(currentBoard, board)
+	currentPoint := fromPoint
+
+	// Try each die in sequence
+	for i, die := range dice {
+		toPoint := CalculateToPoint(currentPoint, die.value, color)
+
+		// Last die can bear off
+		if i == len(dice)-1 && canBear && (toPoint <= 0 || toPoint >= 25) {
+			err := ValidateMove(currentBoard, currentPoint, 25, die.value, color, barCount)
+			if err != nil {
+				return false
+			}
+			return true
+		}
+
+		// Regular move must land on valid point
+		if toPoint < 1 || toPoint > 24 {
+			return false
+		}
+
+		err := ValidateMove(currentBoard, currentPoint, toPoint, die.value, color, barCount)
+		if err != nil {
+			return false
+		}
+
+		// Execute the move to update board state for next iteration
+		result, err := ExecuteMove(currentBoard, currentPoint, toPoint, color)
+		if err != nil {
+			return false
+		}
+
+		currentBoard = result.NewBoard
+		currentPoint = toPoint
+	}
+
+	return true
 }
 
 // HasLegalMoves checks if there are any legal moves available

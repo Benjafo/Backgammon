@@ -183,6 +183,8 @@ export default function GamePage() {
                 fromPoint: move.fromPoint,
                 toPoint: move.toPoint,
                 dieUsed: move.dieUsed,
+                diceIndices: move.diceIndices,
+                isCombinedMove: move.isCombinedMove,
             });
             setGameState(newState);
             setDraggedPoint(null);
