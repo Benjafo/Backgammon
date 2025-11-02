@@ -28,8 +28,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: backgammon-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@backgammon.local
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: Password123!
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "5050:80"
