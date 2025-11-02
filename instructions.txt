@@ -1,0 +1,75 @@
+For this project, you will create an AJAX-powered, compound document (i.e., HTML and SVG) front-end, database-driven back-end turn-based multi-player game.
+
+In other words: When it is one player's turn, only that player will be able to control the action until he signals that he is done, then it is the other player's turn. (Yes, keeping track of state via your database).
+
+You will also need to build a login page (can be the same page as the game or different page). Once players are logged in, they go to a lobby (complete with a WebSockets chat) that will allow the players to choose a user to challenge to a game. Once challenged and accepted, both users go on and play the game (the actual game can be the same page or another page).
+
+Requirements
+
+Workflow:
+Player goes to game site; without proper session token, player's redirected to login
+Player logs in and is redirected to game lobby
+all players in the lobby can see a list of other players in the lobby
+all players in the lobby can chat with each other
+Player chooses a competitor to play against; once the competitor agrees, both players are taken to the game board
+
+Game play commences
+players in the game can chat with each other (but not with players in the lobby)
+players must at all times be informed of whose turn it is
+players may not play when it's not their turn
+both players must be notified when there's a winner
+players must not be allowed to make illegal moves (feedback must be given to the player attempting an illegal move)
+if the page reloads, the game must resume where it left off
+players must have the option of ending a game
+
+Somebody wins
+when a game ends, both players must be notified
+after exiting the gameplay, players are taken back to the lobby
+The user interface will be a combination of SVG and HTML, but the game board must be drawn by SVG
+Not all elements have to be SVG, but the interactive board/area/environment will be SVG
+You may use a client-side framework, but beware of potential additional complexity of combining your chosen framework with SVG
+
+Server environment:
+You can use PHP and MySQL, but you don't have to
+All queries must use prepared statements (parameterized queries)!
+Remember to validate and sanitize all user input (i.e., all requests from the client)
+You may user a server-side framework for general functionality, but you must implement specific requirements yourself (e.g., you may not use a pre-built library for a chat application)
+Proper architecture is a must - think server layers and SOA. Do not just throw all of your functionality into a single file, or all of your files into a single directory.
+You could this npm package, created by a former iSchool student, to set up a template for your server architecture: https://www.npmjs.com/package/ez-templates
+
+Login
+Users should log in with a username and password
+You must build out simple user registration
+If a person doesn't already have a user account, that user should be able to register from the login page
+Include a custom-token nonce on the user registration page
+Generate (and store) the token on the server when the page is requested
+Include information about the user (such as IP and browser), as well as a timestamp, in the token
+Send the token down to the browser with the registration page
+When the user submits the registration form, include the token in the request
+Before creating the user on the server, validate the token:
+Ensure that it matches the stored token
+Ensure that user information matches what's in the request headers
+Ensure that the token hasn't expired (you determine what that timeout should be)
+Refer to the "Security Tokens" section of the lecture notes under Day 04 for an example
+You don't have to have a password reset option, but you could...
+You don't have to have a user management view for administrative users, but you could...
+You don't have to include MFA or a captcha, but you could...
+
+Chat
+You'll use WebSockets to implement the chat (allowing for bidirectional communication)
+Use separate chat "rooms" for the lobby and for each game
+Include at least the players' names and messages; you could also include timestamps and other info if you want
+Chat messages should be stored in the database
+
+Gameplay
+SVG must be used to draw the board
+Drawing tools, such as Adobe Illustrator, can be used to create complex SVG changes
+After one player moves, consider using SVG animation to update the opponent's board
+It should be obvious whose turn it is
+The game boards must update automatically using AJAX (Fetch or XHR); users shouldn't have to click refresh
+Game state should be stored in the database
+
+Feel free to use any of the Web technologies you have previously learned or some you learned on your own!
+Be complete – try to break your game and solve for these shortcomings (‘cause you know I will try to break them!)
+The application will work in Firefox, Chrome, Safari and Edge
+Looks!!! (professional looking, quality graphics, etc.)
