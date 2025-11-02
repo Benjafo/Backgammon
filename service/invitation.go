@@ -239,6 +239,14 @@ func AcceptInvitationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Initialize game state (board, pieces, etc.)
+	err = db.InitializeGameState(r.Context(), gameID)
+	if err != nil {
+		log.Printf("Failed to initialize game state: %v", err)
+		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to initialize game")
+		return
+	}
+
 	// Accept invitation and link to game
 	err = db.AcceptInvitation(r.Context(), invitationID, gameID)
 	if err != nil {

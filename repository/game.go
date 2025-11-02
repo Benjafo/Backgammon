@@ -3,9 +3,12 @@ package repository
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Game represents a backgammon game
@@ -340,4 +343,352 @@ func (pg *Postgres) GetActiveGamesForUser(ctx context.Context, userID int) ([]Ga
 	}
 
 	return games, nil
+}
+
+// ============================================================================
+// GAME_STATE Management
+// ============================================================================
+
+// GameState represents the current state of a backgammon game
+type GameState struct {
+	StateID        int
+	GameID         int
+	BoardState     []int // 24 integers: positive=white, negative=black, 0=empty
+	BarWhite       int
+	BarBlack       int
+	BornedOffWhite int
+	BornedOffBlack int
+	DiceRoll       []int // [die1, die2] or nil
+	DiceUsed       []bool // [used1, used2] or nil
+	LastUpdated    time.Time
+}
+
+// InitializeGameState creates the initial board state for a new game
+func (pg *Postgres) InitializeGameState(ctx context.Context, gameID int) error {
+	// Initial backgammon setup:
+	// Point 1: 2 white, Point 6: 5 black, Point 8: 3 black, Point 12: 5 white
+	// Point 13: 5 black, Point 17: 3 white, Point 19: 5 white, Point 24: 2 black
+	// Using array indices 0-23 for points 1-24
+	initialBoard := make([]int, 24)
+	initialBoard[0] = 2    // Point 1: 2 white
+	initialBoard[5] = -5   // Point 6: 5 black
+	initialBoard[7] = -3   // Point 8: 3 black
+	initialBoard[11] = 5   // Point 12: 5 white
+	initialBoard[12] = -5  // Point 13: 5 black
+	initialBoard[16] = 3   // Point 17: 3 white
+	initialBoard[18] = 5   // Point 19: 5 white
+	initialBoard[23] = -2  // Point 24: 2 black
+
+	boardJSON, err := json.Marshal(initialBoard)
+	if err != nil {
+		return fmt.Errorf("failed to marshal board state: %w", err)
+	}
+
+	query := `
+		INSERT INTO GAME_STATE (
+			game_id, board_state, bar_white, bar_black,
+			borne_off_white, borne_off_black, dice_roll, dice_used, last_updated
+		)
+		VALUES ($1, $2, 0, 0, 0, 0, NULL, NULL, NOW())
+	`
+
+	_, err = pg.db.Exec(ctx, query, gameID, boardJSON)
+	if err != nil {
+		return fmt.Errorf("failed to initialize game state: %w", err)
+	}
+
+	return nil
+}
+
+// GetGameState retrieves the current game state
+func (pg *Postgres) GetGameState(ctx context.Context, gameID int) (*GameState, error) {
+	query := `
+		SELECT
+			state_id, game_id, board_state, bar_white, bar_black,
+			borne_off_white, borne_off_black, dice_roll, dice_used, last_updated
+		FROM GAME_STATE
+		WHERE game_id = $1
+	`
+
+	var state GameState
+	var boardJSON []byte
+	var diceRollJSON []byte
+	var diceUsedJSON []byte
+
+	err := pg.db.QueryRow(ctx, query, gameID).Scan(
+		&state.StateID,
+		&state.GameID,
+		&boardJSON,
+		&state.BarWhite,
+		&state.BarBlack,
+		&state.BornedOffWhite,
+		&state.BornedOffBlack,
+		&diceRollJSON,
+		&diceUsedJSON,
+		&state.LastUpdated,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("game state not found")
+		}
+		return nil, fmt.Errorf("failed to get game state: %w", err)
+	}
+
+	// Unmarshal board state
+	if err := json.Unmarshal(boardJSON, &state.BoardState); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal board state: %w", err)
+	}
+
+	// Unmarshal dice roll if present
+	if diceRollJSON != nil {
+		if err := json.Unmarshal(diceRollJSON, &state.DiceRoll); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal dice roll: %w", err)
+		}
+	}
+
+	// Unmarshal dice used if present
+	if diceUsedJSON != nil {
+		if err := json.Unmarshal(diceUsedJSON, &state.DiceUsed); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal dice used: %w", err)
+		}
+	}
+
+	return &state, nil
+}
+
+// UpdateGameState updates the game state
+func (pg *Postgres) UpdateGameState(ctx context.Context, state *GameState) error {
+	boardJSON, err := json.Marshal(state.BoardState)
+	if err != nil {
+		return fmt.Errorf("failed to marshal board state: %w", err)
+	}
+
+	var diceRollJSON []byte
+	var diceUsedJSON []byte
+
+	if state.DiceRoll != nil {
+		diceRollJSON, err = json.Marshal(state.DiceRoll)
+		if err != nil {
+			return fmt.Errorf("failed to marshal dice roll: %w", err)
+		}
+	}
+
+	if state.DiceUsed != nil {
+		diceUsedJSON, err = json.Marshal(state.DiceUsed)
+		if err != nil {
+			return fmt.Errorf("failed to marshal dice used: %w", err)
+		}
+	}
+
+	query := `
+		UPDATE GAME_STATE
+		SET board_state = $2,
+		    bar_white = $3,
+		    bar_black = $4,
+		    borne_off_white = $5,
+		    borne_off_black = $6,
+		    dice_roll = $7,
+		    dice_used = $8,
+		    last_updated = NOW()
+		WHERE game_id = $1
+	`
+
+	result, err := pg.db.Exec(ctx, query,
+		state.GameID,
+		boardJSON,
+		state.BarWhite,
+		state.BarBlack,
+		state.BornedOffWhite,
+		state.BornedOffBlack,
+		diceRollJSON,
+		diceUsedJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update game state: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("game state not found")
+	}
+
+	return nil
+}
+
+// RollDice generates a new dice roll for the current turn
+func (pg *Postgres) RollDice(ctx context.Context, gameID int) ([]int, error) {
+	// Generate two random dice (1-6)
+	die1, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate die 1: %w", err)
+	}
+
+	die2, err := rand.Int(rand.Reader, big.NewInt(6))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate die 2: %w", err)
+	}
+
+	dice := []int{int(die1.Int64()) + 1, int(die2.Int64()) + 1}
+	diceUsed := []bool{false, false}
+
+	diceJSON, err := json.Marshal(dice)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal dice: %w", err)
+	}
+
+	diceUsedJSON, err := json.Marshal(diceUsed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal dice used: %w", err)
+	}
+
+	query := `
+		UPDATE GAME_STATE
+		SET dice_roll = $2, dice_used = $3, last_updated = NOW()
+		WHERE game_id = $1
+	`
+
+	result, err := pg.db.Exec(ctx, query, gameID, diceJSON, diceUsedJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to roll dice: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return nil, fmt.Errorf("game state not found")
+	}
+
+	return dice, nil
+}
+
+// ClearDice clears the dice roll at the end of a turn
+func (pg *Postgres) ClearDice(ctx context.Context, gameID int) error {
+	query := `
+		UPDATE GAME_STATE
+		SET dice_roll = NULL, dice_used = NULL, last_updated = NOW()
+		WHERE game_id = $1
+	`
+
+	_, err := pg.db.Exec(ctx, query, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to clear dice: %w", err)
+	}
+
+	return nil
+}
+
+// ============================================================================
+// MOVE History Management
+// ============================================================================
+
+// Move represents a single checker move in a game
+type Move struct {
+	MoveID      int
+	GameID      int
+	PlayerID    int
+	MoveNumber  int
+	FromPoint   int // 0=bar, 1-24=board points, 25=borne off
+	ToPoint     int
+	DieUsed     int
+	HitOpponent bool
+	Timestamp   time.Time
+}
+
+// CreateMove records a move in the database
+func (pg *Postgres) CreateMove(ctx context.Context, move *Move) (int, error) {
+	query := `
+		INSERT INTO MOVE (
+			game_id, player_id, move_number, from_point, to_point,
+			die_used, hit_opponent, timestamp
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+		RETURNING move_id
+	`
+
+	var moveID int
+	err := pg.db.QueryRow(ctx, query,
+		move.GameID,
+		move.PlayerID,
+		move.MoveNumber,
+		move.FromPoint,
+		move.ToPoint,
+		move.DieUsed,
+		move.HitOpponent,
+	).Scan(&moveID)
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to create move: %w", err)
+	}
+
+	return moveID, nil
+}
+
+// GetMoveHistory retrieves all moves for a game
+func (pg *Postgres) GetMoveHistory(ctx context.Context, gameID int) ([]Move, error) {
+	query := `
+		SELECT
+			move_id, game_id, player_id, move_number, from_point,
+			to_point, die_used, hit_opponent, timestamp
+		FROM MOVE
+		WHERE game_id = $1
+		ORDER BY move_number ASC, timestamp ASC
+	`
+
+	rows, err := pg.db.Query(ctx, query, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get move history: %w", err)
+	}
+	defer rows.Close()
+
+	moves := []Move{}
+	for rows.Next() {
+		var move Move
+		err := rows.Scan(
+			&move.MoveID,
+			&move.GameID,
+			&move.PlayerID,
+			&move.MoveNumber,
+			&move.FromPoint,
+			&move.ToPoint,
+			&move.DieUsed,
+			&move.HitOpponent,
+			&move.Timestamp,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan move: %w", err)
+		}
+		moves = append(moves, move)
+	}
+
+	return moves, nil
+}
+
+// GetLastMoveNumber gets the latest move number for a game
+func (pg *Postgres) GetLastMoveNumber(ctx context.Context, gameID int) (int, error) {
+	query := `
+		SELECT COALESCE(MAX(move_number), 0)
+		FROM MOVE
+		WHERE game_id = $1
+	`
+
+	var moveNumber int
+	err := pg.db.QueryRow(ctx, query, gameID).Scan(&moveNumber)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last move number: %w", err)
+	}
+
+	return moveNumber, nil
+}
+
+// UpdateGameTurn updates whose turn it is
+func (pg *Postgres) UpdateGameTurn(ctx context.Context, gameID int, playerID int) error {
+	query := `
+		UPDATE GAME
+		SET current_turn = $2
+		WHERE game_id = $1
+	`
+
+	_, err := pg.db.Exec(ctx, query, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to update game turn: %w", err)
+	}
+
+	return nil
 }
