@@ -545,7 +545,7 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if dice have been rolled
-	if state.DiceRoll == nil || len(state.DiceRoll) != 2 {
+	if state.DiceRoll == nil || len(state.DiceRoll) < 2 {
 		util.ErrorResponse(w, http.StatusBadRequest, "Dice not rolled yet")
 		return
 	}

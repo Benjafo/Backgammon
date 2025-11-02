@@ -538,8 +538,19 @@ func (pg *Postgres) RollDice(ctx context.Context, gameID int) ([]int, error) {
 		return nil, fmt.Errorf("failed to generate die 2: %w", err)
 	}
 
-	dice := []int{int(die1.Int64()) + 1, int(die2.Int64()) + 1}
-	diceUsed := []bool{false, false}
+	val1 := int(die1.Int64()) + 1
+	val2 := int(die2.Int64()) + 1
+
+	// For doubles, player gets 4 moves of the same value
+	var dice []int
+	var diceUsed []bool
+	if val1 == val2 {
+		dice = []int{val1, val1, val1, val1}
+		diceUsed = []bool{false, false, false, false}
+	} else {
+		dice = []int{val1, val2}
+		diceUsed = []bool{false, false}
+	}
 
 	diceJSON, err := json.Marshal(dice)
 	if err != nil {

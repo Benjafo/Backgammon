@@ -372,25 +372,19 @@ export default function GamePage() {
                                 {isGameActive && isMyTurn && gameState?.diceRoll && (
                                     <div className="text-sm">
                                         <p className="font-medium mb-1">Dice:</p>
-                                        <div className="flex gap-2">
-                                            <div
-                                                className={`border-2 rounded p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
-                                                    gameState.diceUsed?.[0]
-                                                        ? "bg-gray-200 text-gray-400"
-                                                        : "bg-white"
-                                                }`}
-                                            >
-                                                {gameState.diceRoll[0]}
-                                            </div>
-                                            <div
-                                                className={`border-2 rounded p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
-                                                    gameState.diceUsed?.[1]
-                                                        ? "bg-gray-200 text-gray-400"
-                                                        : "bg-white"
-                                                }`}
-                                            >
-                                                {gameState.diceRoll[1]}
-                                            </div>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {gameState.diceRoll.map((die, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`border-2 rounded p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
+                                                        gameState.diceUsed?.[index]
+                                                            ? "bg-gray-200 text-gray-400"
+                                                            : "bg-white"
+                                                    }`}
+                                                >
+                                                    {die}
+                                                </div>
+                                            ))}
                                         </div>
                                         {draggedPoint !== null && (
                                             <p className="text-xs text-muted-foreground mt-2">

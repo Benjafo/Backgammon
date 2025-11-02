@@ -487,10 +487,9 @@ export default function BackgammonBoard({
                         fontSize="18"
                         fontWeight="bold"
                     >
-                        Dice: {gameState.diceRoll[0]}
-                        {gameState.diceUsed && gameState.diceUsed[0] && " (used)"},{" "}
-                        {gameState.diceRoll[1]}
-                        {gameState.diceUsed && gameState.diceUsed[1] && " (used)"}
+                        Dice: {gameState.diceRoll.map((die, i) => (
+                            `${die}${gameState.diceUsed && gameState.diceUsed[i] ? " (used)" : ""}`
+                        )).join(", ")}
                     </text>
                 </g>
             )}
