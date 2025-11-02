@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { GameState, LegalMove } from "@/types/game";
 
 interface BackgammonBoardProps {
@@ -5,8 +6,9 @@ interface BackgammonBoardProps {
     myColor: "white" | "black";
     isMyTurn: boolean;
     legalMoves: LegalMove[];
-    selectedPoint: number | null;
-    onPointClick: (point: number) => void;
+    draggedPoint: number | null;
+    onDragStart: (point: number) => void;
+    onDrop: (point: number) => void;
 }
 
 export default function BackgammonBoard({
@@ -14,14 +16,83 @@ export default function BackgammonBoard({
     myColor,
     isMyTurn,
     legalMoves,
-    selectedPoint,
-    onPointClick,
+    draggedPoint,
+    onDragStart,
+    onDrop,
 }: BackgammonBoardProps) {
     const BOARD_WIDTH = 800;
     const BOARD_HEIGHT = 600;
     const POINT_WIDTH = 50;
     const POINT_HEIGHT = 200;
     const CHECKER_RADIUS = 20;
+
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragX, setDragX] = useState(0);
+    const [dragY, setDragY] = useState(0);
+
+    // Handle mouse move on SVG - update dragged checker position
+    const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (isDragging && draggedPoint !== null) {
+            const svg = e.currentTarget;
+            const rect = svg.getBoundingClientRect();
+            setDragX(e.clientX - rect.left);
+            setDragY(e.clientY - rect.top);
+        }
+    };
+
+    // Handle mouse up on SVG - drop the checker
+    const handleMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (isDragging && draggedPoint !== null) {
+            // Determine which point we're over and call onDrop
+            const svg = e.currentTarget;
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Find which point is under the mouse
+            const targetPoint = findPointAtPosition(mouseX, mouseY);
+            if (targetPoint !== null) {
+                onDrop(targetPoint);
+            }
+
+            setIsDragging(false);
+        }
+    };
+
+    // Handle checker mousedown - start dragging
+    const handleCheckerMouseDown = (point: number, x: number, y: number) => {
+        onDragStart(point);
+        setIsDragging(true);
+        setDragX(x);
+        setDragY(y);
+    };
+
+    // Find which point is at a given position
+    const findPointAtPosition = (x: number, y: number): number | null => {
+        // Check bar first
+        const barX = BOARD_WIDTH / 2 - 25;
+        if (x >= barX && x <= barX + 50 && y >= 50 && y <= BOARD_HEIGHT - 50) {
+            return 0;
+        }
+
+        // Check all 24 points
+        for (let pointNum = 1; pointNum <= 24; pointNum++) {
+            const pointX = getPointX(pointNum);
+            const isTop = pointNum >= 13;
+            const pointY = isTop ? 50 : BOARD_HEIGHT - 50;
+
+            // Check if mouse is within the triangle bounds
+            if (x >= pointX && x <= pointX + POINT_WIDTH) {
+                if (isTop && y >= pointY && y <= pointY + POINT_HEIGHT) {
+                    return pointNum;
+                } else if (!isTop && y >= pointY - POINT_HEIGHT && y <= pointY) {
+                    return pointNum;
+                }
+            }
+        }
+
+        return null;
+    };
 
     // Helper to get checker color for a point
     const getCheckerColor = (count: number): "white" | "black" | null => {
@@ -32,8 +103,8 @@ export default function BackgammonBoard({
 
     // Helper to determine if a point is a valid destination
     const isValidDestination = (point: number): boolean => {
-        if (!isMyTurn || selectedPoint === null) return false;
-        return legalMoves.some((m) => m.fromPoint === selectedPoint && m.toPoint === point);
+        if (!isMyTurn || draggedPoint === null) return false;
+        return legalMoves.some((m) => m.fromPoint === draggedPoint && m.toPoint === point);
     };
 
     // Render a single triangular point
@@ -42,11 +113,11 @@ export default function BackgammonBoard({
         const checkerColor = getCheckerColor(checkerCount);
         const absCount = Math.abs(checkerCount);
 
-        const isSelected = selectedPoint === pointNum;
+        const isDragged = draggedPoint === pointNum;
         const isDestination = isValidDestination(pointNum);
         const hasMyChecker =
             (myColor === "white" && checkerCount > 0) || (myColor === "black" && checkerCount < 0);
-        const isClickable = isMyTurn && hasMyChecker;
+        const isDraggable = isMyTurn && hasMyChecker;
 
         // Calculate triangle points
         const y = isTop ? 50 : BOARD_HEIGHT - 50;
@@ -62,11 +133,10 @@ export default function BackgammonBoard({
                 {/* Triangle */}
                 <polygon
                     points={trianglePoints}
-                    fill={isSelected ? "#FFD700" : isDestination ? "#90EE90" : pointColor}
+                    fill={isDragged ? "#FFD700" : isDestination ? "#90EE90" : pointColor}
                     stroke="#000"
                     strokeWidth="1"
-                    onClick={() => isClickable && onPointClick(pointNum)}
-                    style={{ cursor: isClickable ? "pointer" : "default" }}
+                    style={{ cursor: isDestination ? "pointer" : "default" }}
                     opacity={isDestination ? 0.7 : 1}
                 />
 
@@ -77,17 +147,22 @@ export default function BackgammonBoard({
                             const cy = isTop
                                 ? y + 30 + i * (CHECKER_RADIUS * 2 + 2)
                                 : y - 30 - i * (CHECKER_RADIUS * 2 + 2);
+                            const cx = xPosition + POINT_WIDTH / 2;
                             return (
                                 <circle
                                     key={`checker-${pointNum}-${i}`}
-                                    cx={xPosition + POINT_WIDTH / 2}
+                                    cx={cx}
                                     cy={cy}
                                     r={CHECKER_RADIUS}
                                     fill={checkerColor}
                                     stroke="#000"
                                     strokeWidth="2"
-                                    onClick={() => isClickable && onPointClick(pointNum)}
-                                    style={{ cursor: isClickable ? "pointer" : "default" }}
+                                    onMouseDown={() => {
+                                        if (isDraggable) {
+                                            handleCheckerMouseDown(pointNum, cx, cy);
+                                        }
+                                    }}
+                                    style={{ cursor: isDraggable ? "grab" : "default" }}
                                 />
                             );
                         })}
@@ -131,9 +206,9 @@ export default function BackgammonBoard({
         const whiteCount = gameState.barWhite;
         const blackCount = gameState.barBlack;
 
-        const whiteClickable = isMyTurn && myColor === "white" && whiteCount > 0;
-        const blackClickable = isMyTurn && myColor === "black" && blackCount > 0;
-        const barSelected = selectedPoint === 0;
+        const whiteDraggable = isMyTurn && myColor === "white" && whiteCount > 0;
+        const blackDraggable = isMyTurn && myColor === "black" && blackCount > 0;
+        const barDragged = draggedPoint === 0;
         const barIsDestination = isValidDestination(0);
 
         return (
@@ -144,7 +219,7 @@ export default function BackgammonBoard({
                     y={50}
                     width={50}
                     height={BOARD_HEIGHT - 100}
-                    fill={barSelected ? "#FFD700" : barIsDestination ? "#90EE90" : "#654321"}
+                    fill={barDragged ? "#FFD700" : barIsDestination ? "#90EE90" : "#654321"}
                     stroke="#000"
                     strokeWidth="2"
                 />
@@ -156,19 +231,27 @@ export default function BackgammonBoard({
                 {/* White checkers on bar */}
                 {whiteCount > 0 && (
                     <>
-                        {Array.from({ length: Math.min(whiteCount, 3) }).map((_, i) => (
-                            <circle
-                                key={`bar-white-${i}`}
-                                cx={barX + 25}
-                                cy={BOARD_HEIGHT / 2 - 100 + i * (CHECKER_RADIUS * 2 + 2)}
-                                r={CHECKER_RADIUS}
-                                fill="white"
-                                stroke="#000"
-                                strokeWidth="2"
-                                onClick={() => whiteClickable && onPointClick(0)}
-                                style={{ cursor: whiteClickable ? "pointer" : "default" }}
-                            />
-                        ))}
+                        {Array.from({ length: Math.min(whiteCount, 3) }).map((_, i) => {
+                            const cx = barX + 25;
+                            const cy = BOARD_HEIGHT / 2 - 100 + i * (CHECKER_RADIUS * 2 + 2);
+                            return (
+                                <circle
+                                    key={`bar-white-${i}`}
+                                    cx={cx}
+                                    cy={cy}
+                                    r={CHECKER_RADIUS}
+                                    fill="white"
+                                    stroke="#000"
+                                    strokeWidth="2"
+                                    onMouseDown={() => {
+                                        if (whiteDraggable) {
+                                            handleCheckerMouseDown(0, cx, cy);
+                                        }
+                                    }}
+                                    style={{ cursor: whiteDraggable ? "grab" : "default" }}
+                                />
+                            );
+                        })}
                         {whiteCount > 3 && (
                             <text
                                 x={barX + 25}
@@ -186,19 +269,27 @@ export default function BackgammonBoard({
                 {/* Black checkers on bar */}
                 {blackCount > 0 && (
                     <>
-                        {Array.from({ length: Math.min(blackCount, 3) }).map((_, i) => (
-                            <circle
-                                key={`bar-black-${i}`}
-                                cx={barX + 25}
-                                cy={BOARD_HEIGHT / 2 + 40 + i * (CHECKER_RADIUS * 2 + 2)}
-                                r={CHECKER_RADIUS}
-                                fill="black"
-                                stroke="#000"
-                                strokeWidth="2"
-                                onClick={() => blackClickable && onPointClick(0)}
-                                style={{ cursor: blackClickable ? "pointer" : "default" }}
-                            />
-                        ))}
+                        {Array.from({ length: Math.min(blackCount, 3) }).map((_, i) => {
+                            const cx = barX + 25;
+                            const cy = BOARD_HEIGHT / 2 + 40 + i * (CHECKER_RADIUS * 2 + 2);
+                            return (
+                                <circle
+                                    key={`bar-black-${i}`}
+                                    cx={cx}
+                                    cy={cy}
+                                    r={CHECKER_RADIUS}
+                                    fill="black"
+                                    stroke="#000"
+                                    strokeWidth="2"
+                                    onMouseDown={() => {
+                                        if (blackDraggable) {
+                                            handleCheckerMouseDown(0, cx, cy);
+                                        }
+                                    }}
+                                    style={{ cursor: blackDraggable ? "grab" : "default" }}
+                                />
+                            );
+                        })}
                         {blackCount > 3 && (
                             <text
                                 x={barX + 25}
@@ -294,7 +385,7 @@ export default function BackgammonBoard({
             return barX + barWidth + offset * POINT_WIDTH;
         } else if (pointNum >= 19 && pointNum <= 24) {
             // Left side, top - 24, 23, 22, 21, 20, 19 from left to right
-            const offset = 24 - pointNum;
+            const offset = pointNum - 19;
             return barX - POINT_WIDTH - offset * POINT_WIDTH;
         } else if (pointNum >= 7 && pointNum <= 12) {
             // Right side, bottom - 7, 8, 9, 10, 11, 12 from left to right
@@ -302,9 +393,20 @@ export default function BackgammonBoard({
             return barX + barWidth + offset * POINT_WIDTH;
         } else {
             // Left side, bottom - 1, 2, 3, 4, 5, 6 from left to right
-            const offset = pointNum - 1;
+            const offset = 6 - pointNum;
             return barX - POINT_WIDTH - offset * POINT_WIDTH;
         }
+    };
+
+    // Get the color of the dragged checker
+    const getDraggedCheckerColor = (): "white" | "black" | null => {
+        if (draggedPoint === null) return null;
+        if (draggedPoint === 0) {
+            // Bar
+            return myColor;
+        }
+        const checkerCount = gameState.board[draggedPoint - 1];
+        return getCheckerColor(checkerCount);
     };
 
     return (
@@ -312,6 +414,8 @@ export default function BackgammonBoard({
             width={BOARD_WIDTH}
             height={BOARD_HEIGHT}
             className="border-2 border-gray-800 rounded-lg bg-amber-100"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
         >
             {/* Board background */}
             <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#DEB887" />
@@ -346,6 +450,20 @@ export default function BackgammonBoard({
                         {gameState.diceUsed && gameState.diceUsed[1] && " (used)"}
                     </text>
                 </g>
+            )}
+
+            {/* Dragged checker (ghost) */}
+            {isDragging && draggedPoint !== null && (
+                <circle
+                    cx={dragX}
+                    cy={dragY}
+                    r={CHECKER_RADIUS}
+                    fill={getDraggedCheckerColor() || "gray"}
+                    stroke="#000"
+                    strokeWidth="2"
+                    opacity={0.7}
+                    style={{ pointerEvents: "none" }}
+                />
             )}
         </svg>
     );

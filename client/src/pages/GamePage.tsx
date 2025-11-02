@@ -22,7 +22,7 @@ export default function GamePage() {
     const [gameData, setGameData] = useState<GameData | null>(null);
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [legalMoves, setLegalMoves] = useState<LegalMove[]>([]);
-    const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+    const [draggedPoint, setDraggedPoint] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
@@ -159,27 +159,20 @@ export default function GamePage() {
         }
     };
 
-    const handlePointClick = async (point: number) => {
+    const handleDragStart = (point: number) => {
         if (!gameId || !gameData || !gameState) return;
         if (gameData.currentTurn !== user?.id) return;
+        setDraggedPoint(point);
+    };
 
-        // If no point selected, select this point
-        if (selectedPoint === null) {
-            setSelectedPoint(point);
-            return;
-        }
+    const handleDrop = async (toPoint: number) => {
+        if (!gameId || !gameData || !gameState || draggedPoint === null) return;
+        if (gameData.currentTurn !== user?.id) return;
 
-        // If same point clicked, deselect
-        if (selectedPoint === point) {
-            setSelectedPoint(null);
-            return;
-        }
-
-        // Try to make a move from selectedPoint to point
-        const move = legalMoves.find((m) => m.fromPoint === selectedPoint && m.toPoint === point);
+        // Find the legal move
+        const move = legalMoves.find((m) => m.fromPoint === draggedPoint && m.toPoint === toPoint);
         if (!move) {
-            // Not a valid move, switch selection
-            setSelectedPoint(point);
+            setDraggedPoint(null);
             return;
         }
 
@@ -192,11 +185,12 @@ export default function GamePage() {
                 dieUsed: move.dieUsed,
             });
             setGameState(newState);
-            setSelectedPoint(null);
+            setDraggedPoint(null);
             await fetchGameData();
         } catch (err) {
             console.error("Failed to make move:", err);
             alert(err instanceof Error ? err.message : "Failed to make move");
+            setDraggedPoint(null);
         } finally {
             setActionLoading(false);
         }
@@ -285,8 +279,9 @@ export default function GamePage() {
                                 myColor={myColor}
                                 isMyTurn={isMyTurn}
                                 legalMoves={legalMoves}
-                                selectedPoint={selectedPoint}
-                                onPointClick={handlePointClick}
+                                draggedPoint={draggedPoint}
+                                onDragStart={handleDragStart}
+                                onDrop={handleDrop}
                             />
                         ) : (
                             <div className="border-2 border-dashed rounded-lg p-12 text-center">
@@ -340,7 +335,7 @@ export default function GamePage() {
                                         <p className="text-sm font-medium">
                                             {gameData.winnerId === myPlayer.userId
                                                 ? "You won!"
-                                                : `${opponentPlayer.username} won`}
+                                                : "Better luck next time!"}
                                         </p>
                                     </div>
                                 )}
@@ -397,10 +392,12 @@ export default function GamePage() {
                                                 {gameState.diceRoll[1]}
                                             </div>
                                         </div>
-                                        {selectedPoint !== null && (
+                                        {draggedPoint !== null && (
                                             <p className="text-xs text-muted-foreground mt-2">
-                                                Point {selectedPoint === 0 ? "Bar" : selectedPoint}{" "}
-                                                selected
+                                                Dragging from{" "}
+                                                {draggedPoint === 0
+                                                    ? "Bar"
+                                                    : `Point ${draggedPoint}`}
                                             </p>
                                         )}
                                         {legalMoves.length === 0 && (
