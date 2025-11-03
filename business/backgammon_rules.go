@@ -14,11 +14,11 @@ const (
 
 // LegalMove represents a valid move option
 type LegalMove struct {
-	FromPoint      int   // 0=bar, 1-24=board points, 25=bear off
-	ToPoint        int
-	DieUsed        int   // Sum of dice values used (e.g., 4 for a 1+3 combined move)
-	DiceIndices    []int // Indices of dice being used (for combined moves)
-	IsCombinedMove bool  // True if this move uses multiple dice
+	FromPoint      int   `json:"fromPoint"`      // 0=bar, 1-24=board points, 25=bear off
+	ToPoint        int   `json:"toPoint"`        // Destination point
+	DieUsed        int   `json:"dieUsed"`        // Sum of dice values used (e.g., 4 for a 1+3 combined move)
+	DiceIndices    []int `json:"diceIndices"`    // Indices of dice being used (for combined moves)
+	IsCombinedMove bool  `json:"isCombinedMove"` // True if this move uses multiple dice
 }
 
 // MoveResult contains the outcome of executing a move
