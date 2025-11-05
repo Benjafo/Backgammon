@@ -5,13 +5,6 @@ import (
 	"fmt"
 )
 
-type User struct {
-	UserID       int
-	Username     string
-	PasswordHash string
-	Email        *string
-}
-
 // CreateUser inserts a new user into the database
 func (pg *Postgres) CreateUser(ctx context.Context, username, passwordHash string, email *string) (int, error) {
 	query := `

@@ -4,35 +4,6 @@ import (
 	"fmt"
 )
 
-// Color represents a player's color
-type Color string
-
-const (
-	ColorWhite Color = "white"
-	ColorBlack Color = "black"
-)
-
-// LegalMove represents a valid move option
-type LegalMove struct {
-	FromPoint      int   `json:"fromPoint"`      // 0=bar, 1-24=board points, 25=bear off
-	ToPoint        int   `json:"toPoint"`        // Destination point
-	DieUsed        int   `json:"dieUsed"`        // Sum of dice values used (e.g., 4 for a 1+3 combined move)
-	DiceIndices    []int `json:"diceIndices"`    // Indices of dice being used (for combined moves)
-	IsCombinedMove bool  `json:"isCombinedMove"` // True if this move uses multiple dice
-}
-
-// MoveResult contains the outcome of executing a move
-type MoveResult struct {
-	NewBoard    []int
-	HitOpponent bool
-}
-
-// indexedDie represents a die value with its index in the dice array
-type indexedDie struct {
-	value int
-	index int
-}
-
 // ============================================================================
 // Board Analysis
 // ============================================================================
@@ -112,10 +83,10 @@ func CountCheckersOnPoint(board []int, point int, color Color) int {
 // Move Calculation
 // ============================================================================
 
-// CalculateToPoint calculates the destination point for a move
-// White moves from high numbers to low (24 -> 1)
-// Black moves from low numbers to high (1 -> 24)
+// Calculate the destination point for a move
 func CalculateToPoint(fromPoint int, dieValue int, color Color) int {
+	// White moves from high numbers to low (24 -> 1)
+	// Black moves from low numbers to high (1 -> 24)
 	if color == ColorWhite {
 		return fromPoint - dieValue
 	} else {
@@ -127,7 +98,7 @@ func CalculateToPoint(fromPoint int, dieValue int, color Color) int {
 // Move Validation
 // ============================================================================
 
-// ValidateMove checks if a move is legal
+// Check if a move is legal
 func ValidateMove(board []int, fromPoint, toPoint, dieValue int, color Color, barCount int) error {
 	// Must enter from bar first
 	if barCount > 0 && fromPoint != 0 {
@@ -204,7 +175,7 @@ func ValidateMove(board []int, fromPoint, toPoint, dieValue int, color Color, ba
 	return nil
 }
 
-// isHighestOccupiedPoint checks if this is the highest occupied point for bearing off
+// Check if this is the highest occupied point for bearing off
 func isHighestOccupiedPoint(board []int, point int, color Color) bool {
 	if color == ColorWhite {
 		// White moves 24→1, so higher points are those with larger numbers (point+1 to 6)
@@ -229,7 +200,7 @@ func isHighestOccupiedPoint(board []int, point int, color Color) bool {
 // Move Execution
 // ============================================================================
 
-// ExecuteMove applies a move to the board and returns the new state
+// Apply a move to the board and returns the new state
 func ExecuteMove(board []int, fromPoint, toPoint int, color Color) (*MoveResult, error) {
 	newBoard := make([]int, 24)
 	copy(newBoard, board)
@@ -297,7 +268,7 @@ func ExecuteMove(board []int, fromPoint, toPoint int, color Color) (*MoveResult,
 // Legal Moves Generation
 // ============================================================================
 
-// GetLegalMoves returns all legal moves for the current position
+// Return all legal moves for the current position
 func GetLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCount, bornedOff int) []LegalMove {
 	legalMoves := []LegalMove{}
 
@@ -422,7 +393,7 @@ func GetLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCou
 	return legalMoves
 }
 
-// generateCombinations generates all combinations of n dice from the available dice
+// Generate all combinations of n dice from the available dice
 func generateCombinations(dice []indexedDie, n int) [][]indexedDie {
 	result := [][]indexedDie{}
 	if n == 0 {
@@ -450,7 +421,7 @@ func generateCombinations(dice []indexedDie, n int) [][]indexedDie {
 	return result
 }
 
-// trySequentialMove validates a sequence of moves using multiple dice
+// Validate a sequence of moves using multiple dice
 func trySequentialMove(board []int, fromPoint int, dice []indexedDie, color Color, barCount int, canBear bool) bool {
 	currentBoard := make([]int, len(board))
 	copy(currentBoard, board)
@@ -492,7 +463,7 @@ func trySequentialMove(board []int, fromPoint int, dice []indexedDie, color Colo
 	return true
 }
 
-// HasLegalMoves checks if there are any legal moves available
+// Check if there are any legal moves available
 func HasLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCount int) bool {
 	moves := GetLegalMoves(board, color, dice, diceUsed, barCount, 0)
 	return len(moves) > 0
@@ -502,7 +473,7 @@ func HasLegalMoves(board []int, color Color, dice []int, diceUsed []bool, barCou
 // Dice Management
 // ============================================================================
 
-// AllDiceUsed checks if all dice have been used
+// Check if all dice have been used
 func AllDiceUsed(diceUsed []bool) bool {
 	for _, used := range diceUsed {
 		if !used {
@@ -516,7 +487,7 @@ func AllDiceUsed(diceUsed []bool) bool {
 // Win Condition
 // ============================================================================
 
-// CheckWinCondition checks if a player has won (all 15 checkers borne off)
+// Check if a player has won (all 15 checkers borne off)
 func CheckWinCondition(bornedOff int) bool {
 	return bornedOff >= 15
 }

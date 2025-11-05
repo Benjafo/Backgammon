@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HashPassword hashes a password using bcrypt
+// Hash a password using bcrypt
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -19,12 +19,12 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-// CheckPassword compares a hashed password with a plain text password
+// Compare a hashed password with a plain text password
 func CheckPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-// GenerateSecureToken generates a cryptographically secure random token
+// Generate a cryptographically secure random token
 func GenerateSecureToken(length int) (string, error) {
 	bytes := make([]byte, length)
 	if _, err := rand.Read(bytes); err != nil {
@@ -33,7 +33,7 @@ func GenerateSecureToken(length int) (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
-// ParseJSONBody parses JSON request body into the provided interface
+// Parse JSON request body into the provided interface
 func ParseJSONBody(r *http.Request, v interface{}) error {
 	if r.Body == nil {
 		return fmt.Errorf("missing request body")

@@ -8,31 +8,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Invitation represents a game invitation between two players
-type Invitation struct {
-	InvitationID int
-	ChallengerID int
-	ChallengedID int
-	Status       string
-	GameID       *int
-	CreatedAt    time.Time
-	// Extended fields for joined queries
-	ChallengerUsername string
-	ChallengedUsername string
-}
-
-// InvitationWithUsers contains invitation with full user details
-type InvitationWithUsers struct {
-	InvitationID       int
-	ChallengerID       int
-	ChallengerUsername string
-	ChallengedID       int
-	ChallengedUsername string
-	Status             string
-	GameID             *int
-	CreatedAt          time.Time
-}
-
 // CreateInvitation creates a new game invitation
 func (pg *Postgres) CreateInvitation(ctx context.Context, challengerID, challengedID int) (int, error) {
 	// Check for existing pending invitation between these users

@@ -6,16 +6,6 @@ import (
 	"time"
 )
 
-type RegistrationToken struct {
-	TokenID    int
-	TokenValue string
-	IPAddress  string
-	UserAgent  string
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
-	IsUsed     bool
-}
-
 // CreateRegistrationToken inserts a new registration token (for CSRF protection)
 func (pg *Postgres) CreateRegistrationToken(ctx context.Context, tokenValue, ipAddress, userAgent string, expiresAt time.Time) error {
 	query := `

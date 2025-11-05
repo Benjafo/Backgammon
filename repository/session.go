@@ -6,17 +6,6 @@ import (
 	"time"
 )
 
-type Session struct {
-	SessionID    int
-	UserID       int
-	SessionToken string
-	IPAddress    string
-	UserAgent    string
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
-	IsActive     bool
-}
-
 // CreateSession inserts a new session into the database
 func (pg *Postgres) CreateSession(ctx context.Context, userID int, sessionToken, ipAddress, userAgent string, expiresAt time.Time) error {
 	query := `

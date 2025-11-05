@@ -13,6 +13,7 @@ type contextKey string
 
 const UserIDKey contextKey = "userID"
 
+// Handle session validation for protected routes
 func SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
@@ -56,7 +57,7 @@ func SessionMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// GetUserIDFromContext retrieves the user ID from request context
+// Retrieve the user ID from request context
 func GetUserIDFromContext(ctx context.Context) (int, bool) {
 	userID, ok := ctx.Value(UserIDKey).(int)
 	return userID, ok
