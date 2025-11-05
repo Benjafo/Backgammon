@@ -21,15 +21,10 @@ CREATE TABLE "USER" (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    email VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
     -- Constraints
-    CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 3),
-    CONSTRAINT chk_email_format CHECK (
-        email IS NULL
-        OR email LIKE '%_@_%._%'
-    )
+    CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 3)
 );
 
 -- ============================================================================

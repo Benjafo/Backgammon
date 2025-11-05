@@ -16,7 +16,6 @@ import { Link, useNavigate } from "react-router-dom";
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [email, setEmail] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
@@ -28,7 +27,7 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            await register({ username, password, email: email || undefined });
+            await register({ username, password });
             navigate("/lobby");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Registration failed");
@@ -55,17 +54,6 @@ export default function RegisterPage() {
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Choose a username"
                                 required
-                                disabled={loading}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email (optional)</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="your@email.com"
                                 disabled={loading}
                             />
                         </div>

@@ -10,7 +10,6 @@ type User struct {
 	UserID       int
 	Username     string
 	PasswordHash string
-	Email        *string
 }
 
 // ============================================================================

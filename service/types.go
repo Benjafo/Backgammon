@@ -10,16 +10,14 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	Username string  `json:"username"`
-	Password string  `json:"password"`
-	Email    *string `json:"email"`
-	Token    string  `json:"token"` // Registration CSRF token
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Token    string `json:"token"` // Registration CSRF token
 }
 
 type UserResponse struct {
-	ID       int     `json:"id"`
-	Username string  `json:"username"`
-	Email    *string `json:"email"`
+	ID       int    `json:"id"`
+	Username string `json:"username"`
 }
 
 // ============================================================================

@@ -106,7 +106,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user
-	userID, err := db.CreateUser(r.Context(), req.Username, passwordHash, req.Email)
+	userID, err := db.CreateUser(r.Context(), req.Username, passwordHash)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
 		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to create account")
@@ -145,7 +145,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       userID,
 			Username: req.Username,
-			Email:    req.Email,
 		},
 	})
 }
@@ -221,7 +220,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       user.UserID,
 			Username: user.Username,
-			Email:    user.Email,
 		},
 	})
 }
@@ -304,7 +302,6 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       user.UserID,
 			Username: user.Username,
-			Email:    user.Email,
 		},
 	})
 }
