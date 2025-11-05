@@ -1,5 +1,5 @@
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PublicRoute } from "@/components/PublicRoute";
+import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import { PublicRoute } from "@/components/common/PublicRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import GamePage from "@/pages/GamePage";
 import LobbyPage from "@/pages/LobbyPage";
