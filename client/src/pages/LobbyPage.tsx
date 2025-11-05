@@ -1,3 +1,4 @@
+import { getActiveGames } from "@/api/game";
 import {
     acceptInvitation,
     cancelInvitation,
@@ -9,14 +10,14 @@ import {
     sendHeartbeat,
     sendInvitation,
 } from "@/api/lobby";
-import { getActiveGames } from "@/api/game";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { type Invitation, type LobbyUser } from "@/types/lobby";
 import type { GameData } from "@/types/game";
+import { type Invitation, type LobbyUser } from "@/types/lobby";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ChatPanel from "@/components/common/ChatPanel";
 
 export default function LobbyPage() {
     const { user, logout } = useAuth();
@@ -168,62 +169,84 @@ export default function LobbyPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background p-8">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
+        <div className="min-h-screen bg-background flex flex-col">
+            {/* Header */}
+            <div className="border-b">
+                <div className="max-w-full px-6 py-4 flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold">Backgammon Lobby</h1>
-                        <p className="text-muted-foreground">Welcome, {user?.username}!</p>
+                        <h1 className="text-2xl font-bold">Backgammon Lobby</h1>
+                        <p className="text-sm text-muted-foreground">Welcome, {user?.username}!</p>
                     </div>
-                    <Button onClick={logout} variant="outline">
+                    <Button onClick={logout} variant="outline" size="sm">
                         Logout
                     </Button>
                 </div>
+            </div>
 
-                {error && (
-                    <Card className="mb-6 border-destructive">
-                        <CardContent className="pt-6">
-                            <p className="text-destructive">{error}</p>
-                        </CardContent>
-                    </Card>
-                )}
+            {/* Error Banner */}
+            {error && (
+                <div className="bg-destructive/10 border-b border-destructive px-6 py-3">
+                    <p className="text-sm text-destructive">{error}</p>
+                </div>
+            )}
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Active Games */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Active Games</CardTitle>
-                            <CardDescription>
-                                {activeGames.length} active game{activeGames.length !== 1 ? "s" : ""}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+            {/* Main Content - Split Panel Layout */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Left Panel - Main Lobby Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Active Games Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    My Games
+                                </h2>
+                                {activeGames.length > 0 && (
+                                    <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+                                        {activeGames.length}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-card rounded-lg border">
                             {activeGames.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No active games
-                                </p>
+                                <div className="p-4 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        No active games
+                                    </p>
+                                </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="divide-y">
                                     {activeGames.map((game) => {
                                         const isPlayer1 = game.player1.userId === user?.id;
                                         const opponent = isPlayer1 ? game.player2 : game.player1;
-                                        const myColor = isPlayer1 ? game.player1.color : game.player2.color;
+                                        const myColor = isPlayer1
+                                            ? game.player1.color
+                                            : game.player2.color;
 
                                         return (
                                             <div
                                                 key={game.gameId}
-                                                className="p-3 rounded-md border space-y-2"
+                                                className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
                                             >
-                                                <p className="font-medium">
-                                                    vs {opponent.username}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Playing as {myColor} • {game.gameStatus === "pending" ? "Waiting to start" : "In progress"}
-                                                </p>
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-sm">
+                                                        vs {opponent.username}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground">
+                                                            {myColor}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {game.gameStatus === "pending"
+                                                                ? "Waiting to start"
+                                                                : "In progress"}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                                 <Button
                                                     size="sm"
                                                     onClick={() => navigate(`/game/${game.gameId}`)}
-                                                    className="w-full"
                                                 >
                                                     Join Game
                                                 </Button>
@@ -232,79 +255,48 @@ export default function LobbyPage() {
                                     })}
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
 
-                    {/* Online Users */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Online Players</CardTitle>
-                            <CardDescription>
-                                {onlineUsers.length} player{onlineUsers.length !== 1 ? "s" : ""}{" "}
-                                online
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {onlineUsers.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No other players online
-                                </p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {onlineUsers.map((player) => {
-                                        const hasPendingInvitation = sentInvitations.some(
-                                            (inv) => inv.challenged.userId === player.userId
-                                        );
-                                        return (
-                                            <div
-                                                key={player.userId}
-                                                className="flex items-center justify-between p-2 rounded-md border"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">{player.username}</p>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleChallenge(player.userId)}
-                                                    disabled={
-                                                        actionLoading === player.userId ||
-                                                        hasPendingInvitation
-                                                    }
-                                                >
-                                                    {hasPendingInvitation ? "Invited" : "Challenge"}
-                                                </Button>
-                                            </div>
-                                        );
-                                    })}
+                    {/* Invitations Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Invitations
+                                </h2>
+                                {(receivedInvitations.length + sentInvitations.length) > 0 && (
+                                    <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+                                        {receivedInvitations.length + sentInvitations.length}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-card rounded-lg border">
+                            {receivedInvitations.length === 0 && sentInvitations.length === 0 ? (
+                                <div className="p-4 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        No pending invitations
+                                    </p>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Received Invitations */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Received Invitations</CardTitle>
-                            <CardDescription>
-                                {receivedInvitations.length} pending invitation
-                                {receivedInvitations.length !== 1 ? "s" : ""}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {receivedInvitations.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No pending invitations
-                                </p>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="divide-y">
+                                    {/* Received Invitations */}
                                     {receivedInvitations.map((invitation) => (
                                         <div
-                                            key={invitation.invitationId}
-                                            className="p-3 rounded-md border space-y-2"
+                                            key={`received-${invitation.invitationId}`}
+                                            className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
                                         >
-                                            <p className="font-medium">
-                                                Challenge from {invitation.challenger.username}
-                                            </p>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                                                        Received
+                                                    </span>
+                                                    <p className="font-medium text-sm">
+                                                        from {invitation.challenger.username}
+                                                    </p>
+                                                </div>
+                                            </div>
                                             <div className="flex gap-2">
                                                 <Button
                                                     size="sm"
@@ -314,7 +306,6 @@ export default function LobbyPage() {
                                                     disabled={
                                                         actionLoading === invitation.invitationId
                                                     }
-                                                    className="flex-1"
                                                 >
                                                     Accept
                                                 </Button>
@@ -327,85 +318,143 @@ export default function LobbyPage() {
                                                     disabled={
                                                         actionLoading === invitation.invitationId
                                                     }
-                                                    className="flex-1"
                                                 >
                                                     Decline
                                                 </Button>
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
 
-                    {/* Sent Invitations */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Sent Invitations</CardTitle>
-                            <CardDescription>
-                                {sentInvitations.length} invitation
-                                {sentInvitations.length !== 1 ? "s" : ""}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {sentInvitations.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No sent invitations</p>
-                            ) : (
-                                <div className="space-y-3">
+                                    {/* Sent Invitations */}
                                     {sentInvitations.map((invitation) => (
                                         <div
-                                            key={invitation.invitationId}
-                                            className="p-3 rounded-md border space-y-2"
+                                            key={`sent-${invitation.invitationId}`}
+                                            className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
                                         >
+                                            <div className="flex-1">
+                                                {invitation.status === "pending" ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                                                            Sent
+                                                        </span>
+                                                        <p className="font-medium text-sm">
+                                                            to {invitation.challenged.username}
+                                                        </p>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            Waiting for response...
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                                                                Accepted
+                                                            </span>
+                                                            <p className="font-medium text-sm text-primary">
+                                                                {invitation.challenged.username} accepted!
+                                                            </p>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                            Game #{invitation.gameId} is ready
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
                                             {invitation.status === "pending" ? (
-                                                <>
-                                                    <p className="font-medium">
-                                                        Waiting for {invitation.challenged.username}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Waiting for response...
-                                                    </p>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            handleCancel(invitation.invitationId)
-                                                        }
-                                                        disabled={
-                                                            actionLoading === invitation.invitationId
-                                                        }
-                                                        className="w-full"
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        handleCancel(invitation.invitationId)
+                                                    }
+                                                    disabled={
+                                                        actionLoading === invitation.invitationId
+                                                    }
+                                                >
+                                                    Cancel
+                                                </Button>
                                             ) : (
-                                                <>
-                                                    <p className="font-medium text-primary">
-                                                        {invitation.challenged.username} accepted your
-                                                        challenge!
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Game #{invitation.gameId} is ready
-                                                    </p>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            navigate(`/game/${invitation.gameId}`)
-                                                        }
-                                                        className="w-full"
-                                                    >
-                                                        Join Game
-                                                    </Button>
-                                                </>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        navigate(`/game/${invitation.gameId}`)
+                                                    }
+                                                >
+                                                    Join Game
+                                                </Button>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+
+                    {/* Online Players Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Online Players
+                                </h2>
+                                {onlineUsers.length > 0 && (
+                                    <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+                                        {onlineUsers.length}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-card rounded-lg border">
+                            {onlineUsers.length === 0 ? (
+                                <div className="p-4 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        No other players online
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="divide-y">
+                                    {onlineUsers.map((player) => {
+                                        const hasPendingInvitation = sentInvitations.some(
+                                            (inv) =>
+                                                inv.challenged.userId === player.userId &&
+                                                inv.status === "pending"
+                                        );
+                                        return (
+                                            <div
+                                                key={player.userId}
+                                                className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                    <p className="font-medium text-sm">
+                                                        {player.username}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handleChallenge(player.userId)}
+                                                    disabled={
+                                                        actionLoading === player.userId ||
+                                                        hasPendingInvitation
+                                                    }
+                                                    variant={
+                                                        hasPendingInvitation ? "outline" : "default"
+                                                    }
+                                                >
+                                                    {hasPendingInvitation ? "Invited" : "Challenge"}
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Panel - Chat */}
+                <div className="w-80 flex-shrink-0">
+                    <ChatPanel currentUsername={user?.username || "Guest"} />
                 </div>
             </div>
         </div>
