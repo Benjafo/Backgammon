@@ -176,7 +176,17 @@ export default function GamePage() {
             return;
         }
 
-        // Execute the move
+        // Store previous state for rollback
+        const previousState = gameState;
+        const previousLegalMoves = legalMoves;
+
+        // Optimistically apply the move to the UI
+        const optimisticState = applyMoveOptimistically(gameState, move, gameData);
+        setGameState(optimisticState);
+        setLegalMoves([]); // Clear legal moves to prevent flash
+        setDraggedPoint(null);
+
+        // Execute the move on the server
         setActionLoading(true);
         try {
             const newState = await makeMove(parseInt(gameId), {
@@ -186,16 +196,101 @@ export default function GamePage() {
                 diceIndices: move.diceIndices,
                 isCombinedMove: move.isCombinedMove,
             });
+            // Update with server's authoritative state
             setGameState(newState);
-            setDraggedPoint(null);
             await fetchGameData();
         } catch (err) {
             console.error("Failed to make move:", err);
+            // Rollback to previous state on error
+            setGameState(previousState);
+            setLegalMoves(previousLegalMoves);
             alert(err instanceof Error ? err.message : "Failed to make move");
-            setDraggedPoint(null);
         } finally {
             setActionLoading(false);
         }
+    };
+
+    // Helper function to apply a move optimistically to the game state
+    const applyMoveOptimistically = (
+        state: GameState,
+        move: LegalMove,
+        game: GameData
+    ): GameState => {
+        const newState = { ...state };
+        newState.board = [...state.board];
+        newState.diceUsed = state.diceUsed ? [...state.diceUsed] : null;
+
+        // Determine player color
+        const isWhite =
+            game.player1.userId === user?.id
+                ? game.player1.color === "white"
+                : game.player2.color === "white";
+        const checkerValue = isWhite ? 1 : -1;
+
+        // Handle moving FROM a point
+        if (move.fromPoint === 0) {
+            // Moving from bar
+            if (isWhite) {
+                newState.barWhite = Math.max(0, state.barWhite - 1);
+            } else {
+                newState.barBlack = Math.max(0, state.barBlack - 1);
+            }
+        } else if (move.fromPoint >= 1 && move.fromPoint <= 24) {
+            // Moving from board point
+            newState.board[move.fromPoint - 1] -= checkerValue;
+        }
+
+        // Handle moving TO a point
+        if (move.toPoint === 25) {
+            // Bearing off
+            if (isWhite) {
+                newState.bornedOffWhite = state.bornedOffWhite + 1;
+            } else {
+                newState.bornedOffBlack = state.bornedOffBlack + 1;
+            }
+        } else if (move.toPoint === 0) {
+            // Hitting opponent's checker (sending to bar)
+            const targetPoint = newState.board[move.toPoint];
+            if (Math.abs(targetPoint) === 1) {
+                // Opponent has a blot here, send it to bar
+                if (isWhite) {
+                    newState.barBlack += 1;
+                    newState.board[move.toPoint] = checkerValue;
+                } else {
+                    newState.barWhite += 1;
+                    newState.board[move.toPoint] = checkerValue;
+                }
+            } else {
+                newState.board[move.toPoint] += checkerValue;
+            }
+        } else if (move.toPoint >= 1 && move.toPoint <= 24) {
+            // Moving to board point
+            const targetPoint = newState.board[move.toPoint - 1];
+            const opponentValue = isWhite ? -1 : 1;
+
+            if (targetPoint === opponentValue) {
+                // Hitting opponent's blot
+                if (isWhite) {
+                    newState.barBlack += 1;
+                } else {
+                    newState.barWhite += 1;
+                }
+                newState.board[move.toPoint - 1] = checkerValue;
+            } else {
+                newState.board[move.toPoint - 1] += checkerValue;
+            }
+        }
+
+        // Mark dice as used
+        if (newState.diceUsed && move.diceIndices) {
+            for (const idx of move.diceIndices) {
+                if (idx >= 0 && idx < newState.diceUsed.length) {
+                    newState.diceUsed[idx] = true;
+                }
+            }
+        }
+
+        return newState;
     };
 
     const handleForfeit = async () => {
@@ -287,9 +382,7 @@ export default function GamePage() {
                             />
                         ) : (
                             <div className="border-2 border-dashed rounded-lg p-12 text-center">
-                                <p className="text-muted-foreground">
-                                    Game not started yet
-                                </p>
+                                <p className="text-muted-foreground">Game not started yet</p>
                             </div>
                         )}
                     </div>
@@ -394,7 +487,7 @@ export default function GamePage() {
                                                     : `Point ${draggedPoint}`}
                                             </p>
                                         )}
-                                        {legalMoves.length === 0 && (
+                                        {legalMoves.length === 0 && !actionLoading && (
                                             <p className="text-xs text-destructive mt-2">
                                                 No legal moves available
                                             </p>
