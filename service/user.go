@@ -9,25 +9,7 @@ import (
 	"backgammon/util"
 )
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type RegisterRequest struct {
-	Username string  `json:"username"`
-	Password string  `json:"password"`
-	Email    *string `json:"email"`
-	Token    string  `json:"token"` // Registration CSRF token
-}
-
-type UserResponse struct {
-	ID       int     `json:"id"`
-	Username string  `json:"username"`
-	Email    *string `json:"email"`
-}
-
-// RegisterTokenHandler generates a CSRF token for registration
+// Generate a CSRF token for registration
 func RegisterTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -64,7 +46,7 @@ func RegisterTokenHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RegisterHandler creates a new user account
+// Create a new user account
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -124,7 +106,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user
-	userID, err := db.CreateUser(r.Context(), req.Username, passwordHash, req.Email)
+	userID, err := db.CreateUser(r.Context(), req.Username, passwordHash)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
 		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to create account")
@@ -163,12 +145,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       userID,
 			Username: req.Username,
-			Email:    req.Email,
 		},
 	})
 }
 
-// LoginHandler authenticates a user and creates a session
+// Authenticate a user and creates a session
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -239,12 +220,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       user.UserID,
 			Username: user.Username,
-			Email:    user.Email,
 		},
 	})
 }
 
-// LogoutHandler invalidates the current session
+// Invalidate the current session
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -283,7 +263,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// SessionHandler validates the current session and returns user info
+// Validate the current session and returns user info
 func SessionHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -322,7 +302,6 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 		"user": UserResponse{
 			ID:       user.UserID,
 			Username: user.Username,
-			Email:    user.Email,
 		},
 	})
 }

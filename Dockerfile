@@ -9,10 +9,14 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 
-# Copy frontend source and build
+# Copy frontend source
 COPY client/ ./
+
+# Create output directory for build
+RUN mkdir -p /app/static
+
+# Build frontend (outputs to /app/static/dist/)
 RUN npm run build
-# Output will be in /app/client/dist (which maps to ../static/dist/)
 
 # ============================================================================
 # Stage 2: Build Backend

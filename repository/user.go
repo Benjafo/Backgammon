@@ -5,23 +5,16 @@ import (
 	"fmt"
 )
 
-type User struct {
-	UserID       int
-	Username     string
-	PasswordHash string
-	Email        *string
-}
-
 // CreateUser inserts a new user into the database
-func (pg *Postgres) CreateUser(ctx context.Context, username, passwordHash string, email *string) (int, error) {
+func (pg *Postgres) CreateUser(ctx context.Context, username, passwordHash string) (int, error) {
 	query := `
-		INSERT INTO "USER" (username, password_hash, email)
-		VALUES ($1, $2, $3)
+		INSERT INTO "USER" (username, password_hash)
+		VALUES ($1, $2)
 		RETURNING user_id
 	`
 
 	var userID int
-	err := pg.db.QueryRow(ctx, query, username, passwordHash, email).Scan(&userID)
+	err := pg.db.QueryRow(ctx, query, username, passwordHash).Scan(&userID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -32,7 +25,7 @@ func (pg *Postgres) CreateUser(ctx context.Context, username, passwordHash strin
 // GetUserByUsername retrieves a user by username
 func (pg *Postgres) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	query := `
-		SELECT user_id, username, password_hash, email
+		SELECT user_id, username, password_hash
 		FROM "USER"
 		WHERE username = $1
 	`
@@ -42,7 +35,6 @@ func (pg *Postgres) GetUserByUsername(ctx context.Context, username string) (*Us
 		&user.UserID,
 		&user.Username,
 		&user.PasswordHash,
-		&user.Email,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -54,7 +46,7 @@ func (pg *Postgres) GetUserByUsername(ctx context.Context, username string) (*Us
 // GetUserByID retrieves a user by ID
 func (pg *Postgres) GetUserByID(ctx context.Context, userID int) (*User, error) {
 	query := `
-		SELECT user_id, username, password_hash, email
+		SELECT user_id, username, password_hash
 		FROM "USER"
 		WHERE user_id = $1
 	`
@@ -64,7 +56,6 @@ func (pg *Postgres) GetUserByID(ctx context.Context, userID int) (*User, error) 
 		&user.UserID,
 		&user.Username,
 		&user.PasswordHash,
-		&user.Email,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)

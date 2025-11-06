@@ -6,27 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
-// Game represents a backgammon game
-type Game struct {
-	GameID       int
-	Player1ID    int
-	Player2ID    int
-	CurrentTurn  int
-	GameStatus   string
-	WinnerID     *int
-	CreatedAt    time.Time
-	StartedAt    *time.Time
-	EndedAt      *time.Time
-	Player1Color string
-	Player2Color string
-}
-
-// CreateGame creates a new game between two players with random color and turn assignment
+// Create a new game between two players with random color and turn assignment
 func (pg *Postgres) CreateGame(ctx context.Context, player1ID, player2ID int) (int, error) {
 	// Validate that players are different
 	if player1ID == player2ID {
@@ -85,7 +69,7 @@ func (pg *Postgres) CreateGame(ctx context.Context, player1ID, player2ID int) (i
 	return gameID, nil
 }
 
-// GetGameByID retrieves a game by its ID
+// Retrieve a game by its ID
 func (pg *Postgres) GetGameByID(ctx context.Context, gameID int) (*Game, error) {
 	query := `
 		SELECT
@@ -125,7 +109,7 @@ func (pg *Postgres) GetGameByID(ctx context.Context, gameID int) (*Game, error) 
 	return &game, nil
 }
 
-// UpdateGameStatus updates the status of a game
+// Update the status of a game
 func (pg *Postgres) UpdateGameStatus(ctx context.Context, gameID int, status string) error {
 	query := `
 		UPDATE GAME
@@ -141,7 +125,7 @@ func (pg *Postgres) UpdateGameStatus(ctx context.Context, gameID int, status str
 	return nil
 }
 
-// ForfeitGame marks a game as abandoned with the opponent as winner
+// Mark a game as abandoned with the opponent as winner
 func (pg *Postgres) ForfeitGame(ctx context.Context, gameID int, forfeitingPlayerID int) error {
 	// Get game details to determine the winner
 	game, err := pg.GetGameByID(ctx, gameID)
@@ -176,7 +160,7 @@ func (pg *Postgres) ForfeitGame(ctx context.Context, gameID int, forfeitingPlaye
 	return nil
 }
 
-// CompleteGame marks a game as completed with a winner
+// Mark a game as completed with a winner
 func (pg *Postgres) CompleteGame(ctx context.Context, gameID int, winnerID int) error {
 	// Verify the winner is a player in this game
 	game, err := pg.GetGameByID(ctx, gameID)
@@ -204,7 +188,7 @@ func (pg *Postgres) CompleteGame(ctx context.Context, gameID int, winnerID int) 
 	return nil
 }
 
-// StartGame marks a game as in_progress
+// Mark a game as in_progress
 func (pg *Postgres) StartGame(ctx context.Context, gameID int) error {
 	query := `
 		UPDATE GAME
@@ -225,23 +209,7 @@ func (pg *Postgres) StartGame(ctx context.Context, gameID int) error {
 	return nil
 }
 
-// GetGameWithPlayers retrieves a game with player usernames
-type GameWithPlayers struct {
-	GameID         int
-	Player1ID      int
-	Player1Username string
-	Player1Color   string
-	Player2ID      int
-	Player2Username string
-	Player2Color   string
-	CurrentTurn    int
-	GameStatus     string
-	WinnerID       *int
-	CreatedAt      time.Time
-	StartedAt      *time.Time
-	EndedAt        *time.Time
-}
-
+// Retrieve a game with player usernames
 func (pg *Postgres) GetGameWithPlayers(ctx context.Context, gameID int) (*GameWithPlayers, error) {
 	query := `
 		SELECT
@@ -287,7 +255,7 @@ func (pg *Postgres) GetGameWithPlayers(ctx context.Context, gameID int) (*GameWi
 	return &game, nil
 }
 
-// GetActiveGamesForUser retrieves all active games for a user
+// Retrieve all active games for a user
 func (pg *Postgres) GetActiveGamesForUser(ctx context.Context, userID int) ([]GameWithPlayers, error) {
 	query := `
 		SELECT
@@ -349,21 +317,7 @@ func (pg *Postgres) GetActiveGamesForUser(ctx context.Context, userID int) ([]Ga
 // GAME_STATE Management
 // ============================================================================
 
-// GameState represents the current state of a backgammon game
-type GameState struct {
-	StateID        int
-	GameID         int
-	BoardState     []int // 24 integers: positive=white, negative=black, 0=empty
-	BarWhite       int
-	BarBlack       int
-	BornedOffWhite int
-	BornedOffBlack int
-	DiceRoll       []int // [die1, die2] or nil
-	DiceUsed       []bool // [used1, used2] or nil
-	LastUpdated    time.Time
-}
-
-// InitializeGameState creates the initial board state for a new game
+// Create the initial board state for a new game
 func (pg *Postgres) InitializeGameState(ctx context.Context, gameID int) error {
 	// Standard backgammon setup:
 	// White moves from 24->1 (counterclockwise), Black moves from 1->24 (clockwise)
@@ -412,7 +366,7 @@ func (pg *Postgres) InitializeGameState(ctx context.Context, gameID int) error {
 	return nil
 }
 
-// GetGameState retrieves the current game state
+// Retrieve the current game state
 func (pg *Postgres) GetGameState(ctx context.Context, gameID int) (*GameState, error) {
 	query := `
 		SELECT
@@ -468,7 +422,7 @@ func (pg *Postgres) GetGameState(ctx context.Context, gameID int) (*GameState, e
 	return &state, nil
 }
 
-// UpdateGameState updates the game state
+// Update the game state
 func (pg *Postgres) UpdateGameState(ctx context.Context, state *GameState) error {
 	boardJSON, err := json.Marshal(state.BoardState)
 	if err != nil {
@@ -526,7 +480,7 @@ func (pg *Postgres) UpdateGameState(ctx context.Context, state *GameState) error
 	return nil
 }
 
-// RollDice generates a new dice roll for the current turn
+// Generate a new dice roll for the current turn
 func (pg *Postgres) RollDice(ctx context.Context, gameID int) ([]int, error) {
 	// Generate two random dice (1-6)
 	die1, err := rand.Int(rand.Reader, big.NewInt(6))
@@ -581,7 +535,7 @@ func (pg *Postgres) RollDice(ctx context.Context, gameID int) ([]int, error) {
 	return dice, nil
 }
 
-// ClearDice clears the dice roll at the end of a turn
+// Clear the dice roll at the end of a turn
 func (pg *Postgres) ClearDice(ctx context.Context, gameID int) error {
 	query := `
 		UPDATE GAME_STATE
@@ -601,20 +555,7 @@ func (pg *Postgres) ClearDice(ctx context.Context, gameID int) error {
 // MOVE History Management
 // ============================================================================
 
-// Move represents a single checker move in a game
-type Move struct {
-	MoveID      int
-	GameID      int
-	PlayerID    int
-	MoveNumber  int
-	FromPoint   int // 0=bar, 1-24=board points, 25=borne off
-	ToPoint     int
-	DieUsed     int
-	HitOpponent bool
-	Timestamp   time.Time
-}
-
-// CreateMove records a move in the database
+// Record a move in the database
 func (pg *Postgres) CreateMove(ctx context.Context, move *Move) (int, error) {
 	query := `
 		INSERT INTO MOVE (
@@ -643,7 +584,7 @@ func (pg *Postgres) CreateMove(ctx context.Context, move *Move) (int, error) {
 	return moveID, nil
 }
 
-// GetMoveHistory retrieves all moves for a game
+// Retrieve all moves for a game
 func (pg *Postgres) GetMoveHistory(ctx context.Context, gameID int) ([]Move, error) {
 	query := `
 		SELECT
@@ -683,7 +624,7 @@ func (pg *Postgres) GetMoveHistory(ctx context.Context, gameID int) ([]Move, err
 	return moves, nil
 }
 
-// GetLastMoveNumber gets the latest move number for a game
+// Get the latest move number for a game
 func (pg *Postgres) GetLastMoveNumber(ctx context.Context, gameID int) (int, error) {
 	query := `
 		SELECT COALESCE(MAX(move_number), 0)
@@ -700,7 +641,7 @@ func (pg *Postgres) GetLastMoveNumber(ctx context.Context, gameID int) (int, err
 	return moveNumber, nil
 }
 
-// UpdateGameTurn updates whose turn it is
+// Update whose turn it is
 func (pg *Postgres) UpdateGameTurn(ctx context.Context, gameID int, playerID int) error {
 	query := `
 		UPDATE GAME

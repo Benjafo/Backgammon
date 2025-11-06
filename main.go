@@ -63,8 +63,12 @@ func main() {
 	protected := util.SessionMiddleware(protectedMux)
 	mux.Handle("/api/", protected)
 
-	// Serve static files
-	fs := http.FileServer(http.Dir("./static/"))
+	// Serve Swagger docs
+	swagger := http.FileServer(http.Dir("./static/swagger/"))
+	mux.Handle("/swagger/", http.StripPrefix("/swagger/", swagger))
+
+	// Serve React app (built frontend)
+	fs := http.FileServer(http.Dir("./static/dist/"))
 	mux.Handle("/", fs)
 
 

@@ -10,11 +10,7 @@ import (
 	"backgammon/util"
 )
 
-type CreateInvitationRequest struct {
-	ChallengedID int `json:"challengedId"`
-}
-
-// InvitationRouterHandler routes invitation requests to the appropriate handler
+// Route invitation requests to the appropriate handler
 func InvitationRouterHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
@@ -45,7 +41,7 @@ func InvitationRouterHandler(w http.ResponseWriter, r *http.Request) {
 	util.ErrorResponse(w, http.StatusNotFound, "Endpoint not found")
 }
 
-// InvitationsHandler handles GET (list) and POST (create) for invitations
+// Handle GET (list) and POST (create) for invitations
 func InvitationsHandler(w http.ResponseWriter, r *http.Request) {
 	db := repository.GetDB()
 	if db == nil {
@@ -70,7 +66,7 @@ func InvitationsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleGetInvitations retrieves all invitations for the current user
+// Retrieve all invitations for the current user
 func handleGetInvitations(w http.ResponseWriter, r *http.Request, db *repository.Postgres, userID int) {
 	sent, received, err := db.GetInvitationsByUser(r.Context(), userID)
 	if err != nil {
@@ -123,7 +119,7 @@ func handleGetInvitations(w http.ResponseWriter, r *http.Request, db *repository
 	})
 }
 
-// handleCreateInvitation creates a new invitation
+// Create a new invitation
 func handleCreateInvitation(w http.ResponseWriter, r *http.Request, db *repository.Postgres, userID int) {
 	var req CreateInvitationRequest
 	if err := util.ParseJSONBody(r, &req); err != nil {
@@ -184,7 +180,7 @@ func handleCreateInvitation(w http.ResponseWriter, r *http.Request, db *reposito
 	_ = challengedUser // Suppress unused variable warning
 }
 
-// AcceptInvitationHandler handles accepting an invitation
+// Handle accepting an invitation
 func AcceptInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -265,7 +261,7 @@ func AcceptInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// DeclineInvitationHandler handles declining an invitation
+// Handle declining an invitation
 func DeclineInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -325,7 +321,7 @@ func DeclineInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CancelInvitationHandler handles canceling an invitation (challenger only)
+// Handle canceling an invitation (challenger only)
 func CancelInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -385,8 +381,7 @@ func CancelInvitationHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// parseInvitationIDFromPath extracts the invitation ID from the URL path
-// Example: /api/v1/invitations/42/accept -> returns 42
+// Extract the invitation ID from the URL path
 func parseInvitationIDFromPath(path, prefix, suffix string) (int, error) {
 	// Remove prefix and suffix
 	trimmed := strings.TrimPrefix(path, prefix)

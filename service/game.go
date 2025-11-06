@@ -11,7 +11,7 @@ import (
 	"backgammon/util"
 )
 
-// GameRouterHandler routes game requests to the appropriate handler
+// Route game requests to the appropriate handler
 func GameRouterHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
@@ -60,7 +60,7 @@ func GameRouterHandler(w http.ResponseWriter, r *http.Request) {
 	util.ErrorResponse(w, http.StatusNotFound, "Endpoint not found")
 }
 
-// GameHandler retrieves game details
+// Retrieve game details
 func GameHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -122,7 +122,7 @@ func GameHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ForfeitHandler allows a player to forfeit the game
+// Allow a player to forfeit the game
 func ForfeitHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -181,7 +181,7 @@ func ForfeitHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// StartGameHandler starts a pending game
+// Start a pending game
 func StartGameHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -234,7 +234,7 @@ func StartGameHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ActiveGamesHandler returns active games for the current user
+// Return active games for the current user
 func ActiveGamesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -291,8 +291,7 @@ func ActiveGamesHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// parseGameIDFromPath extracts the game ID from the URL path
-// Example: /api/v1/games/42 -> returns 42
+// Extract the game ID from the URL path
 func parseGameIDFromPath(path string) (int, error) {
 	// Remove prefix
 	trimmed := strings.TrimPrefix(path, "/api/v1/games/")
@@ -310,7 +309,7 @@ func parseGameIDFromPath(path string) (int, error) {
 // Game State Handlers
 // ============================================================================
 
-// GetGameStateHandler returns the current game state
+// Return the current game state
 func GetGameStateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -373,7 +372,7 @@ func GetGameStateHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RollDiceHandler rolls dice for the current turn
+// Roll dice for the current turn
 func RollDiceHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -470,16 +469,7 @@ func RollDiceHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// MoveRequest represents a move request
-type MoveRequest struct {
-	FromPoint      int   `json:"fromPoint"`
-	ToPoint        int   `json:"toPoint"`
-	DieUsed        int   `json:"dieUsed"`
-	DiceIndices    []int `json:"diceIndices"`    // Indices of dice being used (for combined moves)
-	IsCombinedMove bool  `json:"isCombinedMove"` // True if using multiple dice
-}
-
-// MoveHandler executes a checker move
+// Execute a checker move
 func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -742,7 +732,7 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetLegalMovesHandler returns all legal moves for the current position
+// Return all legal moves for the current position
 func GetLegalMovesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")

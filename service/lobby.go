@@ -8,7 +8,7 @@ import (
 	"backgammon/util"
 )
 
-// LobbyUsersHandler returns the list of users currently in the lobby
+// Return the list of users currently in the lobby
 func LobbyUsersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -60,7 +60,7 @@ func LobbyUsersHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// LobbyPresenceHandler handles joining and leaving the lobby
+// Handle joining and leaving the lobby
 func LobbyPresenceHandler(w http.ResponseWriter, r *http.Request) {
 	db := repository.GetDB()
 	if db == nil {
@@ -108,7 +108,7 @@ func LobbyPresenceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// LobbyPresenceHeartbeatHandler updates the user's last heartbeat timestamp
+// Update the user's last heartbeat timestamp
 func LobbyPresenceHeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")

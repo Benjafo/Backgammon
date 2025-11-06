@@ -6,14 +6,6 @@ import (
 	"time"
 )
 
-// LobbyUser represents a user currently in the lobby
-type LobbyUser struct {
-	UserID        int
-	Username      string
-	JoinedAt      time.Time
-	LastHeartbeat time.Time
-}
-
 // JoinLobby inserts a new presence record for a user joining the lobby
 // If user is already in lobby, updates their heartbeat (idempotent operation)
 func (pg *Postgres) JoinLobby(ctx context.Context, userID int) (int, error) {
