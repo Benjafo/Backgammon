@@ -1,19 +1,14 @@
-
-
 TODO
 
 Allow dragging one piece both die values number of spaces at once (handle doubles)
+(is this done??)
 
-
-
+Add directional indicators of how the flow of pieces should be for each player
 
 CODE REVIEW
 
 move go types to a types file?
 review comments
-
-
-
 
 DONE
 
