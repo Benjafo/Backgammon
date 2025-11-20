@@ -16,6 +16,24 @@ export default defineConfig({
             "/api": {
                 target: "http://backend-dev:8080", // Docker service name
                 changeOrigin: true,
+                ws: true, // Enable WebSocket proxying
+                configure: (proxy, _options) => {
+                    proxy.on("error", (err, _req, _res) => {
+                        console.log("proxy error", err);
+                    });
+                    proxy.on("proxyReqWs", (proxyReq, req, socket) => {
+                        console.log("WebSocket Proxy Request:", req.url);
+                        socket.on("error", (err) => {
+                            console.error("WebSocket socket error:", err);
+                        });
+                    });
+                    proxy.on("open", (proxySocket) => {
+                        console.log("WebSocket proxy connection opened");
+                        proxySocket.on("error", (err) => {
+                            console.error("WebSocket proxySocket error:", err);
+                        });
+                    });
+                },
             },
         },
         watch: {

@@ -137,3 +137,31 @@ type LobbyUser struct {
 	JoinedAt      time.Time
 	LastHeartbeat time.Time
 }
+
+// ============================================================================
+// Chat Types
+// ============================================================================
+
+type ChatRoom struct {
+	RoomID    int
+	RoomType  string
+	GameID    *int
+	CreatedAt time.Time
+}
+
+type ChatMessage struct {
+	MessageID   int
+	RoomID      int
+	UserID      int
+	MessageText string
+	Timestamp   time.Time
+}
+
+type ChatMessageWithUser struct {
+	MessageID   int
+	RoomID      int
+	UserID      int
+	Username    string
+	MessageText string
+	Timestamp   time.Time
+}

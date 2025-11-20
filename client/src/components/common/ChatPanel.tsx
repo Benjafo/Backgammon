@@ -1,39 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-
-interface Message {
-    id: number;
-    username: string;
-    content: string;
-    timestamp: Date;
-}
+import { useChat } from "@/lib/hooks/useChat";
+import { useEffect, useRef, useState } from "react";
 
 interface ChatPanelProps {
     currentUsername: string;
 }
 
 export default function ChatPanel({ currentUsername }: ChatPanelProps) {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const { messages, isConnected, sendMessage } = useChat();
     const [newMessage, setNewMessage] = useState("");
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim()) return;
 
-        // TODO: Implement actual chat API call
-        const message: Message = {
-            id: Date.now(),
-            username: currentUsername,
-            content: newMessage,
-            timestamp: new Date(),
-        };
-
-        setMessages([...messages, message]);
+        sendMessage(newMessage);
         setNewMessage("");
     };
 
-    const formatTime = (date: Date) => {
+    const formatTime = (timestamp: string) => {
+        const date = new Date(timestamp);
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
@@ -41,14 +29,34 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
         return username.slice(0, 2).toUpperCase();
     };
 
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="border-b px-4 py-4 bg-card">
-                <h2 className="font-bold text-base">Lobby Chat</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                    Chat with other players
-                </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="font-bold text-base">Lobby Chat</h2>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Chat with other players
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div
+                            className={`w-2 h-2 rounded-full ${
+                                isConnected ? "bg-green-500" : "bg-red-500"
+                            }`}
+                            title={isConnected ? "Connected" : "Disconnected"}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                            {isConnected ? "Connected" : "Disconnected"}
+                        </span>
+                    </div>
+                </div>
             </div>
 
             {/* Messages Area */}
@@ -81,30 +89,33 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
                         </p>
                     </div>
                 ) : (
-                    messages.map((message) => (
-                        <div key={message.id} className="flex gap-3">
-                            {/* Avatar */}
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                <span className="text-xs font-bold text-white">
-                                    {getUserInitials(message.username)}
-                                </span>
-                            </div>
-                            {/* Message Content */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-baseline gap-2 mb-1">
-                                    <span className="text-sm font-semibold text-foreground">
-                                        {message.username}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {formatTime(message.timestamp)}
+                    <>
+                        {messages.map((message) => (
+                            <div key={message.messageId} className="flex gap-3">
+                                {/* Avatar */}
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <span className="text-xs font-bold text-white">
+                                        {getUserInitials(message.username)}
                                     </span>
                                 </div>
-                                <p className="text-sm text-foreground/90 break-words leading-relaxed">
-                                    {message.content}
-                                </p>
+                                {/* Message Content */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                        <span className="text-sm font-semibold text-foreground">
+                                            {message.username}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {formatTime(message.timestamp)}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-foreground/90 break-words leading-relaxed">
+                                        {message.message}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </>
                 )}
             </div>
 
@@ -113,15 +124,21 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                         type="text"
-                        placeholder="Type a message..."
+                        placeholder={
+                            isConnected
+                                ? "Type a message..."
+                                : "Connecting to chat..."
+                        }
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         className="flex-1"
+                        disabled={!isConnected}
                     />
                     <Button
                         type="submit"
                         size="sm"
                         className="bg-amber-600 hover:bg-amber-700 text-white px-3"
+                        disabled={!isConnected || !newMessage.trim()}
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

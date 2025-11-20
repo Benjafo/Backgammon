@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"backgammon/repository"
 	"backgammon/service"
@@ -28,6 +27,10 @@ func main() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 	log.Println("Database connection established successfully")
+
+	// Initialize chat hub
+	service.InitChatHub()
+	log.Println("Chat hub initialized successfully")
 
 	// Routers
 	mux := http.NewServeMux()          // Unprotected endpoints
@@ -56,8 +59,8 @@ func main() {
 	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
 	protectedMux.HandleFunc("/api/v1/games/", service.GameRouterHandler)
 
-	// Chat endpoint
-	// protectedMux.HandleFunc("/api/v1/chat/rooms/{:roomId}/messages", service.ChatMessagesHandler)
+	// Chat endpoints
+	protectedMux.HandleFunc("/api/v1/chat/ws", service.ChatWebSocketHandler)
 
 	// Apply session middleware to protected routes
 	protected := util.SessionMiddleware(protectedMux)
@@ -71,34 +74,9 @@ func main() {
 	fs := http.FileServer(http.Dir("./static/dist/"))
 	mux.Handle("/", fs)
 
-
-	// TODO move cleanup jobs to a separate service
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-		log.Println("Started stale lobby presence cleanup job (runs every 30s)")
-		for range ticker.C {
-			count, err := db.CleanupStaleLobbyPresence(context.Background(), 60*time.Second)
-			if err != nil {
-				log.Printf("Failed to cleanup stale lobby presence: %v", err)
-			} else if count > 0 {
-				log.Printf("Removed %d stale lobby presence records", count)
-			}
-		}
-	}()
-	go func() {
-		ticker := time.NewTicker(60 * time.Second)
-		defer ticker.Stop()
-		log.Println("Started expired invitation cleanup job (runs every 60s)")
-		for range ticker.C {
-			count, err := db.CleanupExpiredInvitations(context.Background(), 5*time.Minute)
-			if err != nil {
-				log.Printf("Failed to cleanup expired invitations: %v", err)
-			} else if count > 0 {
-				log.Printf("Marked %d invitations as expired", count)
-			}
-		}
-	}()
+	// Start background cleanup jobs
+	go util.CleanupExpiredInvitations()
+	go util.CleanupStaleLobbyPresence()
 
 	log.Println("Server starting on :8080")
 	http.ListenAndServe("0.0.0.0:8080", mux)
