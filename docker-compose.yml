@@ -1,3 +1,8 @@
+networks:
+  web:
+    external: true
+  internal:
+    internal: true
 services:
   # ============================================================================
   # Database (runs in both dev and prod)
@@ -19,6 +24,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # App Directory setup
+    networks:
+      - internal
 
   # ============================================================================
   # pgAdmin (dev only)
@@ -54,6 +62,9 @@ services:
       - /app/node_modules # Prevent overwriting node_modules
     environment:
       - NODE_ENV=development
+    networks:
+      - default
+      - internal
 
   # ============================================================================
   # Backend Dev Server (dev only)
@@ -74,6 +85,8 @@ services:
     volumes:
       - .:/app
       - /app/tmp # Exclude air tmp directory
+    networks:
+      - internal
 
   # ============================================================================
   # Production App (prod only)
@@ -91,6 +104,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # App Directory setup
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backgammon.rule=Host(`backgammon.benjafo.com`)"
+      - "traefik.http.routers.backgammon.entrypoints=websecure"
+      - "traefik.http.routers.backgammon.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backgammon.loadbalancer.server.port=3000"
+      - "traefik.docker.network=web"
 
 volumes:
   postgres_data:
