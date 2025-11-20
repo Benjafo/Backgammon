@@ -113,7 +113,7 @@ services:
       - "traefik.http.routers.backgammon.rule=Host(`backgammon.benjafo.com`)"
       - "traefik.http.routers.backgammon.entrypoints=websecure"
       - "traefik.http.routers.backgammon.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backgammon.loadbalancer.server.port=3000"
+      - "traefik.http.services.backgammon.loadbalancer.server.port=8080"
       - "traefik.docker.network=web"
 
 volumes:

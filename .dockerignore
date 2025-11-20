@@ -56,3 +56,7 @@ pnpm-debug.log*
 # Database
 postgres_data/
 pgadmin_data/
+
+
+**/node_modules/
+node_modules/
