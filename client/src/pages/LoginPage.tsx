@@ -37,10 +37,10 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Card className="w-full max-w-md">
+        <div className="flex items-center justify-center min-h-screen bg-mahogany warm-lighting">
+            <Card className="w-full max-w-md border-gold/30 shadow-gold">
                 <CardHeader>
-                    <CardTitle>Welcome Back</CardTitle>
+                    <CardTitle className="font-display text-2xl text-gold-light">Welcome Back</CardTitle>
                     <CardDescription>Login to your Backgammon account</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
@@ -72,12 +72,12 @@ export default function LoginPage() {
                         {error && <p className="text-sm text-destructive">{error}</p>}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" variant="casino" className="w-full" disabled={loading}>
                             {loading ? "Logging in..." : "Login"}
                         </Button>
                         <p className="text-sm text-center text-muted-foreground">
                             Don't have an account?{" "}
-                            <Link to="/register" className="text-primary hover:underline">
+                            <Link to="/register" className="text-gold-light hover:underline font-semibold">
                                 Register
                             </Link>
                         </p>

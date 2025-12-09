@@ -42,20 +42,20 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-black/50 backdrop-blur-sm">
             {/* Header */}
-            <div className="border-b px-4 py-4 bg-card">
-                <h2 className="font-bold text-base">Lobby Chat</h2>
+            <div className="border-b border-gold/20 px-4 py-4 bg-black/40">
+                <h2 className="font-heading font-bold text-lg text-gold-light">Lounge Chat</h2>
                 <p className="text-xs text-muted-foreground mt-1">
                     Chat with other players
                 </p>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full">
-                        <div className="w-16 h-16 mb-4 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                        <div className="w-16 h-16 mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="32"
@@ -66,7 +66,7 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
                                 strokeWidth="2"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                className="text-amber-600 dark:text-amber-400"
+                                className="text-gold"
                             >
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 <path d="M9 10h6" />
@@ -84,8 +84,8 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
                     messages.map((message) => (
                         <div key={message.id} className="flex gap-3">
                             {/* Avatar */}
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                <span className="text-xs font-bold text-white">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center flex-shrink-0 shadow-poker-chip ring-2 ring-gold-light/30">
+                                <span className="text-xs font-bold text-mahogany">
                                     {getUserInitials(message.username)}
                                 </span>
                             </div>
@@ -109,7 +109,7 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-4 bg-card">
+            <div className="border-t border-gold/20 p-4 bg-black/40">
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                         type="text"
@@ -121,7 +121,8 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
                     <Button
                         type="submit"
                         size="sm"
-                        className="bg-amber-600 hover:bg-amber-700 text-white px-3"
+                        variant="casino"
+                        className="px-3"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

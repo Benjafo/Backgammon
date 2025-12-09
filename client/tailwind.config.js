@@ -11,6 +11,7 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        ornate: "0.5rem",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -52,6 +53,52 @@ export default {
           "3": "hsl(var(--chart-3))",
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
+        },
+        // Casino-themed custom colors
+        felt: {
+          DEFAULT: "hsl(var(--felt))",
+          dark: "hsl(var(--felt-dark))",
+        },
+        gold: {
+          DEFAULT: "hsl(var(--primary))",
+          light: "hsl(var(--gold-light))",
+          dark: "hsl(43 55% 45%)",
+        },
+        mahogany: {
+          DEFAULT: "hsl(var(--background))",
+          light: "hsl(var(--card))",
+          dark: "hsl(20 50% 10%)",
+        },
+      },
+      fontFamily: {
+        display: ['Cinzel', 'serif'],
+        heading: ['Playfair Display', 'serif'],
+        elegant: ['Cormorant Garamond', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'gold': '0 0 20px rgba(212, 168, 85, 0.3), 0 0 40px rgba(212, 168, 85, 0.15)',
+        'gold-lg': '0 0 30px rgba(212, 168, 85, 0.4), 0 0 60px rgba(212, 168, 85, 0.2)',
+        'inset-deep': 'inset 0 2px 8px rgba(0, 0, 0, 0.4)',
+        'raised': '0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.3)',
+        'poker-chip': '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+      },
+      animation: {
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+        'lift': 'lift 0.3s ease-out',
+      },
+      keyframes: {
+        'glow-pulse': {
+          '0%, 100%': {
+            boxShadow: '0 0 20px rgba(212, 168, 85, 0.3)',
+          },
+          '50%': {
+            boxShadow: '0 0 40px rgba(212, 168, 85, 0.5)',
+          },
+        },
+        'lift': {
+          '0%': { transform: 'translateY(0)' },
+          '100%': { transform: 'translateY(-4px)' },
         },
       },
     },
