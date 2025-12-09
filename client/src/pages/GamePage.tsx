@@ -117,14 +117,14 @@ export default function GamePage() {
         }
     }, [loading, gameData?.gameStatus, navigate]);
 
-    // Poll for updates every 2 seconds
+    // Poll for updates every second
     useEffect(() => {
         const pollInterval = setInterval(async () => {
             await fetchGameData();
             if (gameData?.gameStatus === "in_progress") {
                 await fetchGameState();
             }
-        }, 2000);
+        }, 1000);
 
         return () => clearInterval(pollInterval);
     }, [gameId, gameData?.gameStatus]);
@@ -315,10 +315,13 @@ export default function GamePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-2">Loading Game...</h2>
-                    <p className="text-muted-foreground">Game ID: {gameId}</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gold/20 border-t-gold mx-auto mb-4" />
+                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">
+                        Loading Game...
+                    </h2>
+                    <p className="text-muted-foreground">Game #{gameId}</p>
                 </div>
             </div>
         );
@@ -326,11 +329,11 @@ export default function GamePage() {
 
     if (!gameData) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Card className="border-destructive">
+            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting flex items-center justify-center">
+                <Card className="border-destructive shadow-gold">
                     <CardContent className="pt-6">
                         <p className="text-destructive">Failed to load game data</p>
-                        <Button onClick={handleBackToLobby} className="mt-4">
+                        <Button onClick={handleBackToLobby} variant="casino" className="mt-4">
                             Back to Lobby
                         </Button>
                     </CardContent>
@@ -347,11 +350,13 @@ export default function GamePage() {
     const myColor = myPlayer.color as "white" | "black";
 
     return (
-        <div className="min-h-screen bg-background p-4">
+        <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold">Backgammon Game</h1>
+                        <h1 className="text-3xl font-display font-bold text-gold-light">
+                            Backgammon Game
+                        </h1>
                         <p className="text-sm text-muted-foreground">Game #{gameId}</p>
                     </div>
                     <Button onClick={handleBackToLobby} variant="outline" size="sm">
@@ -390,7 +395,7 @@ export default function GamePage() {
                     {/* Sidebar */}
                     <div className="space-y-4">
                         {/* Game Status */}
-                        <Card>
+                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg">Status</CardTitle>
                                 <CardDescription className="capitalize">
@@ -399,8 +404,10 @@ export default function GamePage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div
-                                    className={`p-2 border rounded text-sm ${
-                                        isMyTurn ? "bg-primary/10 border-primary" : ""
+                                    className={`p-3 border-2 rounded-ornate text-sm ${
+                                        isMyTurn
+                                            ? "bg-gold/10 border-gold shadow-gold"
+                                            : "border-gold/30"
                                     }`}
                                 >
                                     <p className="font-medium">{myPlayer.username} (You)</p>
@@ -410,10 +417,10 @@ export default function GamePage() {
                                     </p>
                                 </div>
                                 <div
-                                    className={`p-2 border rounded text-sm ${
+                                    className={`p-3 border-2 rounded-ornate text-sm ${
                                         !isMyTurn && isGameActive
-                                            ? "bg-primary/10 border-primary"
-                                            : ""
+                                            ? "bg-gold/10 border-gold shadow-gold"
+                                            : "border-gold/30"
                                     }`}
                                 >
                                     <p className="font-medium">{opponentPlayer.username}</p>
@@ -436,7 +443,7 @@ export default function GamePage() {
                         </Card>
 
                         {/* Actions */}
-                        <Card>
+                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg">Actions</CardTitle>
                             </CardHeader>
@@ -445,6 +452,7 @@ export default function GamePage() {
                                     <Button
                                         onClick={handleStartGame}
                                         disabled={actionLoading}
+                                        variant="casino"
                                         className="w-full"
                                         size="sm"
                                     >
@@ -456,6 +464,7 @@ export default function GamePage() {
                                     <Button
                                         onClick={handleRollDice}
                                         disabled={actionLoading}
+                                        variant="casino"
                                         className="w-full"
                                     >
                                         Roll Dice
@@ -469,10 +478,10 @@ export default function GamePage() {
                                             {gameState.diceRoll.map((die, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`border-2 rounded p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
+                                                    className={`border-2 rounded-lg p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
                                                         gameState.diceUsed?.[index]
-                                                            ? "bg-gray-200 text-gray-400"
-                                                            : "bg-white"
+                                                            ? "bg-mahogany-dark/50 text-muted-foreground border-gold/20"
+                                                            : "bg-gradient-to-br from-white to-gray-100 border-gold shadow-gold"
                                                     }`}
                                                 >
                                                     {die}
@@ -517,19 +526,21 @@ export default function GamePage() {
                         </Card>
 
                         {/* Info */}
-                        <Card>
+                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg">Info</CardTitle>
                             </CardHeader>
                             <CardContent className="text-xs text-muted-foreground space-y-1">
-                                <p>Created: {new Date(gameData.createdAt).toLocaleString()}</p>
+                                <p>Game Created: {new Date(gameData.createdAt).toLocaleString()}</p>
                                 {gameData.startedAt && (
-                                    <p>Started: {new Date(gameData.startedAt).toLocaleString()}</p>
+                                    <p>
+                                        Game Started:{" "}
+                                        {new Date(gameData.startedAt).toLocaleString()}
+                                    </p>
                                 )}
                                 {gameData.endedAt && (
-                                    <p>Ended: {new Date(gameData.endedAt).toLocaleString()}</p>
+                                    <p>Game Ended: {new Date(gameData.endedAt).toLocaleString()}</p>
                                 )}
-                                <p className="pt-2 border-t">Polling every 2 seconds</p>
                             </CardContent>
                         </Card>
                     </div>

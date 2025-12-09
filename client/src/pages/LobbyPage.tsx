@@ -159,9 +159,10 @@ export default function LobbyPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-felt felt-texture flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-2">Joining Lobby...</h2>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gold/20 border-t-gold mx-auto mb-4" />
+                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">Joining Lobby...</h2>
                     <p className="text-muted-foreground">Please wait</p>
                 </div>
             </div>
@@ -169,18 +170,18 @@ export default function LobbyPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-accent/5 flex flex-col">
+        <div className="min-h-screen bg-felt felt-texture flex flex-col">
             {/* Header */}
-            <div className="border-b bg-card/50 backdrop-blur-sm shadow-sm">
+            <div className="border-b border-gold/20 bg-card/50 backdrop-blur-sm shadow-raised">
                 <div className="max-w-full px-6 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-amber-800 bg-clip-text text-transparent">
-                                Backgammon Lobby
+                            <h1 className="text-3xl font-display font-bold text-gold-light tracking-wide">
+                                Backgammon Lounge
                             </h1>
                             <p className="text-sm font-medium text-foreground mt-0.5">
                                 Welcome back,{" "}
-                                <span className="text-amber-700 dark:text-amber-400">
+                                <span className="text-gold-light font-semibold">
                                     {user?.username}
                                 </span>
                             </p>
@@ -189,7 +190,7 @@ export default function LobbyPage() {
                     <div className="flex items-center gap-3">
                         <Button
                             onClick={() => setIsChatOpen(!isChatOpen)}
-                            variant="outline"
+                            variant="casino"
                             size="sm"
                             className="gap-2"
                         >
@@ -230,18 +231,18 @@ export default function LobbyPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-lg font-bold text-foreground">My Games</h2>
+                                <h2 className="text-xl font-heading text-gold">My Games</h2>
                                 {activeGames.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
                                         {activeGames.length}
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow min-h-[200px]">
+                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
                             {activeGames.length === 0 ? (
                                 <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="32"
@@ -252,7 +253,7 @@ export default function LobbyPage() {
                                             strokeWidth="2"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            className="text-amber-600 dark:text-amber-400"
+                                            className="text-gold"
                                         >
                                             <rect x="3" y="3" width="18" height="18" rx="2" />
                                             <path d="M3 9h18" />
@@ -278,14 +279,14 @@ export default function LobbyPage() {
                                         return (
                                             <div
                                                 key={game.gameId}
-                                                className="p-4 flex items-center justify-between hover:bg-accent/50 transition-all duration-200"
+                                                className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
                                             >
                                                 <div className="flex-1">
                                                     <p className="font-semibold text-sm">
                                                         vs {opponent.username}
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-1.5">
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gold/20 text-gold-light border border-gold/40">
                                                             {myColor}
                                                         </span>
                                                         <span className="text-xs text-muted-foreground">
@@ -297,8 +298,8 @@ export default function LobbyPage() {
                                                 </div>
                                                 <Button
                                                     size="sm"
+                                                    variant="casino"
                                                     onClick={() => navigate(`/game/${game.gameId}`)}
-                                                    className="bg-amber-600 hover:bg-amber-700 text-white"
                                                 >
                                                     Join Game
                                                 </Button>
@@ -314,18 +315,18 @@ export default function LobbyPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-lg font-bold text-foreground">Invitations</h2>
+                                <h2 className="text-xl font-heading text-gold">Invitations</h2>
                                 {receivedInvitations.length + sentInvitations.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
                                         {receivedInvitations.length + sentInvitations.length}
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow min-h-[200px]">
+                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
                             {receivedInvitations.length === 0 && sentInvitations.length === 0 ? (
                                 <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="32"
@@ -336,7 +337,7 @@ export default function LobbyPage() {
                                             strokeWidth="2"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            className="text-blue-600 dark:text-blue-400"
+                                            className="text-gold"
                                         >
                                             <rect
                                                 x="2"
@@ -455,10 +456,10 @@ export default function LobbyPage() {
                                             ) : (
                                                 <Button
                                                     size="sm"
+                                                    variant="casino"
                                                     onClick={() =>
                                                         navigate(`/game/${invitation.gameId}`)
                                                     }
-                                                    className="bg-amber-600 hover:bg-amber-700 text-white"
                                                 >
                                                     Join Game
                                                 </Button>
@@ -474,20 +475,20 @@ export default function LobbyPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-lg font-bold text-foreground">
+                                <h2 className="text-xl font-heading text-gold">
                                     Online Players
                                 </h2>
                                 {onlineUsers.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
                                         {onlineUsers.length}
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow min-h-[200px]">
+                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
                             {onlineUsers.length === 0 ? (
                                 <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="32"
@@ -498,7 +499,7 @@ export default function LobbyPage() {
                                             strokeWidth="2"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            className="text-gray-400"
+                                            className="text-gold"
                                         >
                                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                             <circle cx="9" cy="7" r="4" />
@@ -524,11 +525,11 @@ export default function LobbyPage() {
                                         return (
                                             <div
                                                 key={player.userId}
-                                                className="p-4 flex items-center justify-between hover:bg-accent/50 transition-all duration-200"
+                                                className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                                        <span className="text-sm font-bold text-white">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center flex-shrink-0 shadow-poker-chip ring-2 ring-gold-light/40 hover:ring-4 hover:ring-gold/60 transition-all">
+                                                        <span className="text-sm font-bold text-mahogany">
                                                             {player.username
                                                                 .slice(0, 2)
                                                                 .toUpperCase()}
@@ -553,12 +554,7 @@ export default function LobbyPage() {
                                                         hasPendingInvitation
                                                     }
                                                     variant={
-                                                        hasPendingInvitation ? "outline" : "default"
-                                                    }
-                                                    className={
-                                                        hasPendingInvitation
-                                                            ? ""
-                                                            : "bg-amber-600 hover:bg-amber-700 text-white"
+                                                        hasPendingInvitation ? "outline" : "casino"
                                                     }
                                                 >
                                                     {hasPendingInvitation ? "Invited" : "Challenge"}

@@ -37,10 +37,10 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Card className="w-full max-w-md">
+        <div className="flex items-center justify-center min-h-screen bg-mahogany warm-lighting">
+            <Card className="w-full max-w-md border-gold/30 shadow-gold">
                 <CardHeader>
-                    <CardTitle>Create an Account</CardTitle>
+                    <CardTitle className="font-display text-2xl text-gold-light">Create an Account</CardTitle>
                     <CardDescription>Register to start playing Backgammon</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
@@ -72,12 +72,12 @@ export default function RegisterPage() {
                         {error && <p className="text-sm text-destructive">{error}</p>}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" variant="casino" className="w-full" disabled={loading}>
                             {loading ? "Creating account..." : "Register"}
                         </Button>
                         <p className="text-sm text-center text-muted-foreground">
                             Already have an account?{" "}
-                            <Link to="/login" className="text-primary hover:underline">
+                            <Link to="/login" className="text-gold-light hover:underline font-semibold">
                                 Login
                             </Link>
                         </p>

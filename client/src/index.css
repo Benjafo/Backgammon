@@ -4,58 +4,88 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    /* Base Colors - Deep Mahogany Wood */
+    --background: 20 45% 15%;           /* #3d1e10 - Deep mahogany */
+    --foreground: 40 40% 92%;           /* #f5f0e6 - Ivory text */
+
+    /* Card/Surface Colors - Layered wood tones */
+    --card: 18 52% 22%;                 /* #5c2d18 - Lighter mahogany */
+    --card-foreground: 40 40% 92%;
+
+    /* Popover surfaces */
+    --popover: 18 52% 22%;
+    --popover-foreground: 40 40% 92%;
+
+    /* Gold/Brass Accents */
+    --primary: 43 60% 58%;              /* #d4a855 - Warm gold */
+    --primary-foreground: 20 45% 15%;   /* Dark mahogany text on gold */
+    --gold-light: 44 70% 70%;           /* #e8c97a - Light brass */
+
+    /* Felt Green for game surfaces */
+    --felt: 150 54% 22%;                /* #1a5a3a - Casino felt */
+    --felt-dark: 150 60% 15%;           /* #0d3d26 - Darker felt */
+
+    /* Secondary surfaces */
+    --secondary: 18 48% 18%;            /* Darker wood */
+    --secondary-foreground: 40 40% 92%;
+
+    /* Muted elements */
+    --muted: 18 40% 25%;
+    --muted-foreground: 40 20% 65%;
+
+    /* Accent - Gold highlights */
+    --accent: 43 60% 58%;
+    --accent-foreground: 20 45% 15%;
+
+    /* Destructive - Deep red */
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 40 40% 92%;
+
+    /* Borders - Subtle gold */
+    --border: 43 35% 35%;
+    --input: 43 30% 30%;
+    --ring: 43 60% 58%;
+
+    /* Charts - Casino themed */
+    --chart-1: 43 60% 58%;              /* Gold */
+    --chart-2: 150 54% 22%;             /* Felt green */
+    --chart-3: 20 45% 15%;              /* Mahogany */
+    --chart-4: 0 65% 45%;               /* Red */
+    --chart-5: 40 40% 92%;              /* Ivory */
+
+    /* Radius - More ornate */
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    /* Dark mode maintains same casino aesthetic */
+    --background: 20 50% 12%;
+    --foreground: 40 40% 92%;
+    --card: 18 52% 18%;
+    --card-foreground: 40 40% 92%;
+    --popover: 18 52% 18%;
+    --popover-foreground: 40 40% 92%;
+    --primary: 43 60% 58%;
+    --primary-foreground: 20 45% 15%;
+    --gold-light: 44 70% 70%;
+    --felt: 150 54% 22%;
+    --felt-dark: 150 60% 15%;
+    --secondary: 18 48% 15%;
+    --secondary-foreground: 40 40% 92%;
+    --muted: 18 40% 20%;
+    --muted-foreground: 40 20% 65%;
+    --accent: 43 60% 58%;
+    --accent-foreground: 20 45% 15%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 40 40% 92%;
+    --border: 43 35% 30%;
+    --input: 43 30% 25%;
+    --ring: 43 60% 58%;
+    --chart-1: 43 60% 58%;
+    --chart-2: 150 54% 22%;
+    --chart-3: 20 45% 15%;
+    --chart-4: 0 65% 45%;
+    --chart-5: 40 40% 92%;
   }
 }
 
@@ -65,5 +95,67 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Wood grain texture - SVG noise pattern */
+  .wood-texture {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.1 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-blend-mode: multiply;
+  }
+
+  /* Felt texture - fabric weave effect */
+  .felt-texture {
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.05) 2px, rgba(0,0,0,.05) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,.05) 2px, rgba(0,0,0,.05) 4px);
+    background-size: 4px 4px;
+  }
+
+  /* Noise overlay for depth */
+  .noise-overlay {
+    position: relative;
+  }
+
+  .noise-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Gold glow effect */
+  .gold-glow {
+    box-shadow:
+      0 0 20px rgba(212, 168, 85, 0.3),
+      0 0 40px rgba(212, 168, 85, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* Inset/embossed effect */
+  .inset-shadow {
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Raised/beveled effect */
+  .raised-bevel {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Warm lighting gradient */
+  .warm-lighting {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--background)) 50%,
+      hsl(43 20% 20%) 100%
+    );
   }
 }

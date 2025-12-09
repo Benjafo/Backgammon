@@ -20,7 +20,7 @@ export default function BackgammonBoard({
     onDragStart,
     onDrop,
 }: BackgammonBoardProps) {
-    const BOARD_WIDTH = 800;
+    const BOARD_WIDTH = 870;
     const BOARD_HEIGHT = 600;
     const POINT_WIDTH = 50;
     const POINT_HEIGHT = 200;
@@ -71,11 +71,11 @@ export default function BackgammonBoard({
     const findPointAtPosition = (x: number, y: number): number | null => {
         // Check bear-off zones (point 25)
         // White bear-off is always on the right
-        if (myColor === "white" && x >= BOARD_WIDTH - 80 && x <= BOARD_WIDTH - 10 && y >= BOARD_HEIGHT / 2 - 60 && y <= BOARD_HEIGHT / 2 + 60) {
+        if (myColor === "white" && x >= 780 && x <= 850 && y >= 250 && y <= 350) {
             return 25;
         }
         // Black bear-off is always on the left
-        if (myColor === "black" && x >= 10 && x <= 80 && y >= BOARD_HEIGHT / 2 - 60 && y <= BOARD_HEIGHT / 2 + 60) {
+        if (myColor === "black" && x >= 20 && x <= 90 && y >= 250 && y <= 350) {
             return 25;
         }
 
@@ -145,19 +145,19 @@ export default function BackgammonBoard({
             ? `${xPosition},${y} ${xPosition + POINT_WIDTH / 2},${y + POINT_HEIGHT} ${xPosition + POINT_WIDTH},${y}`
             : `${xPosition},${y} ${xPosition + POINT_WIDTH / 2},${y - POINT_HEIGHT} ${xPosition + POINT_WIDTH},${y}`;
 
-        // Point color (alternating)
-        const pointColor = pointNum % 2 === 0 ? "#8B4513" : "#D2691E";
+        // Point color (alternating) - Mahogany and dark gold
+        const pointColor = pointNum % 2 === 0 ? "hsl(18 52% 22%)" : "hsl(43 40% 35%)";
 
         return (
             <g key={`point-${pointNum}`}>
                 {/* Triangle */}
                 <polygon
                     points={trianglePoints}
-                    fill={isDragged ? "#FFD700" : isDestination ? "#90EE90" : pointColor}
-                    stroke="#000"
-                    strokeWidth="1"
+                    fill={isDragged ? "hsl(43 70% 70%)" : isDestination ? "hsl(43 60% 58%)" : pointColor}
+                    stroke="hsl(43 60% 58%)"
+                    strokeWidth="2"
                     style={{ cursor: isDestination ? "pointer" : "default" }}
-                    opacity={isDestination ? 0.7 : 1}
+                    opacity={isDestination ? 0.6 : 1}
                 />
 
                 {/* Checkers */}
@@ -175,7 +175,7 @@ export default function BackgammonBoard({
                                     cy={cy}
                                     r={CHECKER_RADIUS}
                                     fill={checkerColor}
-                                    stroke="#000"
+                                    stroke="hsl(43 60% 58%)"
                                     strokeWidth="2"
                                     onMouseDown={() => {
                                         if (isDraggable) {
@@ -211,8 +211,9 @@ export default function BackgammonBoard({
                     x={xPosition + POINT_WIDTH / 2}
                     y={isTop ? y - 5 : y + 15}
                     textAnchor="middle"
-                    fill="#666"
+                    fill="hsl(var(--gold-light))"
                     fontSize="12"
+                    fontWeight="bold"
                 >
                     {pointNum}
                 </text>
@@ -240,11 +241,11 @@ export default function BackgammonBoard({
                     width={50}
                     height={BOARD_HEIGHT - 100}
                     fill={barDragged ? "#FFD700" : barIsDestination ? "#90EE90" : "#654321"}
-                    stroke="#000"
+                    stroke="hsl(43 60% 58%)"
                     strokeWidth="2"
                 />
 
-                <text x={barX + 25} y={30} textAnchor="middle" fill="#666" fontSize="12">
+                <text x={barX + 25} y={30} textAnchor="middle" fill="hsl(var(--gold-light))" fontSize="12" fontWeight="bold">
                     Bar
                 </text>
 
@@ -331,36 +332,43 @@ export default function BackgammonBoard({
     // Render borne-off areas
     const renderBorneOff = () => {
         const isBearOffDestination = isValidDestination(25);
+        const boxWidth = 70;
+        const boxHeight = 100;
+        const blackOffX = 20; // 20px from left edge
+        const whiteOffX = 780; // 20px from playing area right edge
+        const boxY = BOARD_HEIGHT / 2 - boxHeight / 2; // Vertically centered
 
         return (
             <g>
                 {/* Black borne off (always left side) */}
                 <rect
-                    x={10}
-                    y={BOARD_HEIGHT / 2 - 60}
-                    width={70}
-                    height={120}
-                    fill={isBearOffDestination && myColor === "black" ? "#90EE90" : "#E0E0E0"}
-                    stroke="#000"
-                    strokeWidth="2"
-                    rx="5"
-                    opacity={isBearOffDestination && myColor === "black" ? 0.7 : 1}
+                    x={blackOffX}
+                    y={boxY}
+                    width={boxWidth}
+                    height={boxHeight}
+                    fill={isBearOffDestination && myColor === "black" ? "hsl(43 60% 58%)" : "hsl(18 52% 22%)"}
+                    stroke="hsl(43 60% 58%)"
+                    strokeWidth="3"
+                    rx="8"
+                    opacity={isBearOffDestination && myColor === "black" ? 0.8 : 1}
                     style={{ cursor: isBearOffDestination && myColor === "black" ? "pointer" : "default" }}
                 />
                 <text
-                    x={45}
-                    y={BOARD_HEIGHT / 2 - 70}
+                    x={blackOffX + boxWidth / 2}
+                    y={boxY - 8}
                     textAnchor="middle"
-                    fill="#666"
-                    fontSize="12"
+                    fill="hsl(var(--gold-light))"
+                    fontSize="11"
+                    fontWeight="bold"
                 >
                     Black Off
                 </text>
                 <text
-                    x={45}
-                    y={BOARD_HEIGHT / 2}
+                    x={blackOffX + boxWidth / 2}
+                    y={boxY + boxHeight / 2 + 10}
                     textAnchor="middle"
-                    fontSize="24"
+                    fill="hsl(var(--gold-light))"
+                    fontSize="32"
                     fontWeight="bold"
                 >
                     {gameState.bornedOffBlack}
@@ -368,31 +376,33 @@ export default function BackgammonBoard({
 
                 {/* White borne off (always right side) */}
                 <rect
-                    x={BOARD_WIDTH - 80}
-                    y={BOARD_HEIGHT / 2 - 60}
-                    width={70}
-                    height={120}
-                    fill={isBearOffDestination && myColor === "white" ? "#90EE90" : "#E0E0E0"}
-                    stroke="#000"
-                    strokeWidth="2"
-                    rx="5"
-                    opacity={isBearOffDestination && myColor === "white" ? 0.7 : 1}
+                    x={whiteOffX}
+                    y={boxY}
+                    width={boxWidth}
+                    height={boxHeight}
+                    fill={isBearOffDestination && myColor === "white" ? "hsl(43 60% 58%)" : "hsl(18 52% 22%)"}
+                    stroke="hsl(43 60% 58%)"
+                    strokeWidth="3"
+                    rx="8"
+                    opacity={isBearOffDestination && myColor === "white" ? 0.8 : 1}
                     style={{ cursor: isBearOffDestination && myColor === "white" ? "pointer" : "default" }}
                 />
                 <text
-                    x={BOARD_WIDTH - 45}
-                    y={BOARD_HEIGHT / 2 - 70}
+                    x={whiteOffX + boxWidth / 2}
+                    y={boxY - 8}
                     textAnchor="middle"
-                    fill="#666"
-                    fontSize="12"
+                    fill="hsl(var(--gold-light))"
+                    fontSize="11"
+                    fontWeight="bold"
                 >
                     White Off
                 </text>
                 <text
-                    x={BOARD_WIDTH - 45}
-                    y={BOARD_HEIGHT / 2}
+                    x={whiteOffX + boxWidth / 2}
+                    y={boxY + boxHeight / 2 + 10}
                     textAnchor="middle"
-                    fontSize="24"
+                    fill="hsl(var(--gold-light))"
+                    fontSize="32"
                     fontWeight="bold"
                 >
                     {gameState.bornedOffWhite}
@@ -461,12 +471,12 @@ export default function BackgammonBoard({
         <svg
             width={BOARD_WIDTH}
             height={BOARD_HEIGHT}
-            className="border-2 border-gray-800 rounded-lg bg-amber-100"
+            className="border-4 border-gold rounded-lg shadow-gold-lg"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
         >
-            {/* Board background */}
-            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#DEB887" />
+            {/* Board background - Casino felt */}
+            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="hsl(var(--felt))" />
 
             {/* Borne off areas */}
             {renderBorneOff()}

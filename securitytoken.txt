@@ -1,0 +1,30 @@
+If I choose to store key info (IP and timestamp) in the DB, I could use a very secure 1-way hash for the token. But then I'd have to go to the DB every time I wanted to know who the user is. Instead, I am storing the user ID as well as the other info in the token itself. This means the token is less secure.
+
+But if you take the following steps you can make a token pretty good.
+
+the IP is converted from base 10 to base X
+the timestamp is converted from base 10 to base Y
+their length is normalized with 0's (at beginning or end?)
+I then interleave characters from the IP, timestamp, user ID, and some random characters to create the token.
+Finally I add a checksum to be sure no one has messed with the string.
+The result ends up with the 5 characters of user id at positions (like) 7, 28, 3, 16, and 12. The IP and timestamp are similarly scrambled. (of course, no one but me knows the order...)
+
+End up with something like this: 002gr2jh01s2ah57081j1f0mzb2tn3
+-from a userId of 45
+-IP of 66.67.132.48
+-timestamp of 1332672537
+Can you tell???
+
+How?
+DateTime(): 1473168941
+base_convert(date,10,18): 275b6hch
+Use the above converted base dispersed in the token and set. When I later get it back, I can check the date by pulling the time back together and converting it back:
+base_convert(convertedDate,18,10): 1473168941
+
+So, when you send me the token and ip, I
+
+check the checksum to be sure it's valid
+pull out the timestamp (and decode) and see if it has expired
+pull out the ip (and decode) and see if it matches what you sent me
+pull out the userId (and decode) and check their rights
+Semi-extreme, but pretty damn secure...
