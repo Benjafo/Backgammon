@@ -1,5 +1,6 @@
 import type { GameState, LegalMove } from "@/types/game";
 import { useState } from "react";
+import { DiceDisplay } from "./Dice";
 
 interface BackgammonBoardProps {
     gameState: GameState;
@@ -21,10 +22,11 @@ export default function BackgammonBoard({
     onDrop,
 }: BackgammonBoardProps) {
     const BOARD_WIDTH = 870;
-    const BOARD_HEIGHT = 600;
+    const BOARD_HEIGHT = 640;
     const POINT_WIDTH = 50;
     const POINT_HEIGHT = 200;
     const CHECKER_RADIUS = 20;
+    const GAMEPLAY_BOTTOM = 550; // Fixed bottom position for gameplay area
 
     const [isDragging, setIsDragging] = useState(false);
     const [dragX, setDragX] = useState(0);
@@ -81,7 +83,7 @@ export default function BackgammonBoard({
 
         // Check bar
         const barX = BOARD_WIDTH / 2 - 25;
-        if (x >= barX && x <= barX + 50 && y >= 50 && y <= BOARD_HEIGHT - 50) {
+        if (x >= barX && x <= barX + 50 && y >= 50 && y <= GAMEPLAY_BOTTOM) {
             return 0;
         }
 
@@ -89,7 +91,7 @@ export default function BackgammonBoard({
         for (let pointNum = 1; pointNum <= 24; pointNum++) {
             const pointX = getPointX(pointNum);
             const isTop = isPointOnTop(pointNum);
-            const pointY = isTop ? 50 : BOARD_HEIGHT - 50;
+            const pointY = isTop ? 50 : GAMEPLAY_BOTTOM;
 
             // Check if mouse is within the triangle bounds
             if (x >= pointX && x <= pointX + POINT_WIDTH) {
@@ -140,7 +142,7 @@ export default function BackgammonBoard({
         const isDraggable = isMyTurn && hasMyChecker;
 
         // Calculate triangle points
-        const y = isTop ? 50 : BOARD_HEIGHT - 50;
+        const y = isTop ? 50 : GAMEPLAY_BOTTOM;
         const trianglePoints = isTop
             ? `${xPosition},${y} ${xPosition + POINT_WIDTH / 2},${y + POINT_HEIGHT} ${xPosition + POINT_WIDTH},${y}`
             : `${xPosition},${y} ${xPosition + POINT_WIDTH / 2},${y - POINT_HEIGHT} ${xPosition + POINT_WIDTH},${y}`;
@@ -153,7 +155,13 @@ export default function BackgammonBoard({
                 {/* Triangle */}
                 <polygon
                     points={trianglePoints}
-                    fill={isDragged ? "hsl(43 70% 70%)" : isDestination ? "hsl(43 60% 58%)" : pointColor}
+                    fill={
+                        isDragged
+                            ? "hsl(43 70% 70%)"
+                            : isDestination
+                              ? "hsl(43 60% 58%)"
+                              : pointColor
+                    }
                     stroke="hsl(43 60% 58%)"
                     strokeWidth="2"
                     style={{ cursor: isDestination ? "pointer" : "default" }}
@@ -239,13 +247,20 @@ export default function BackgammonBoard({
                     x={barX}
                     y={50}
                     width={50}
-                    height={BOARD_HEIGHT - 100}
+                    height={GAMEPLAY_BOTTOM - 50}
                     fill={barDragged ? "#FFD700" : barIsDestination ? "#90EE90" : "#654321"}
                     stroke="hsl(43 60% 58%)"
                     strokeWidth="2"
                 />
 
-                <text x={barX + 25} y={30} textAnchor="middle" fill="hsl(var(--gold-light))" fontSize="12" fontWeight="bold">
+                <text
+                    x={barX + 25}
+                    y={30}
+                    textAnchor="middle"
+                    fill="hsl(var(--gold-light))"
+                    fontSize="12"
+                    fontWeight="bold"
+                >
                     Bar
                 </text>
 
@@ -336,7 +351,7 @@ export default function BackgammonBoard({
         const boxHeight = 100;
         const blackOffX = 20; // 20px from left edge
         const whiteOffX = 780; // 20px from playing area right edge
-        const boxY = BOARD_HEIGHT / 2 - boxHeight / 2; // Vertically centered
+        const boxY = (50 + GAMEPLAY_BOTTOM) / 2 - boxHeight / 2; // Vertically centered in gameplay area
 
         return (
             <g>
@@ -346,12 +361,18 @@ export default function BackgammonBoard({
                     y={boxY}
                     width={boxWidth}
                     height={boxHeight}
-                    fill={isBearOffDestination && myColor === "black" ? "hsl(43 60% 58%)" : "hsl(18 52% 22%)"}
+                    fill={
+                        isBearOffDestination && myColor === "black"
+                            ? "hsl(43 60% 58%)"
+                            : "hsl(18 52% 22%)"
+                    }
                     stroke="hsl(43 60% 58%)"
                     strokeWidth="3"
                     rx="8"
                     opacity={isBearOffDestination && myColor === "black" ? 0.8 : 1}
-                    style={{ cursor: isBearOffDestination && myColor === "black" ? "pointer" : "default" }}
+                    style={{
+                        cursor: isBearOffDestination && myColor === "black" ? "pointer" : "default",
+                    }}
                 />
                 <text
                     x={blackOffX + boxWidth / 2}
@@ -380,12 +401,18 @@ export default function BackgammonBoard({
                     y={boxY}
                     width={boxWidth}
                     height={boxHeight}
-                    fill={isBearOffDestination && myColor === "white" ? "hsl(43 60% 58%)" : "hsl(18 52% 22%)"}
+                    fill={
+                        isBearOffDestination && myColor === "white"
+                            ? "hsl(43 60% 58%)"
+                            : "hsl(18 52% 22%)"
+                    }
                     stroke="hsl(43 60% 58%)"
                     strokeWidth="3"
                     rx="8"
                     opacity={isBearOffDestination && myColor === "white" ? 0.8 : 1}
-                    style={{ cursor: isBearOffDestination && myColor === "white" ? "pointer" : "default" }}
+                    style={{
+                        cursor: isBearOffDestination && myColor === "white" ? "pointer" : "default",
+                    }}
                 />
                 <text
                     x={whiteOffX + boxWidth / 2}
@@ -467,6 +494,159 @@ export default function BackgammonBoard({
         return getCheckerColor(checkerCount);
     };
 
+    // Render directional arrows showing movement direction
+    const renderDirectionalArrows = () => {
+        const arrowColor = "hsl(43 60% 58%)"; // Gold color
+        const arrowWidth = 3;
+
+        // Create arrow marker definitions
+        const arrowMarker = (id: string) => (
+            <marker
+                id={id}
+                markerWidth="10"
+                markerHeight="10"
+                refX="8"
+                refY="3"
+                orient="auto"
+                markerUnits="strokeWidth"
+            >
+                <path d="M0,0 L0,6 L9,3 z" fill={arrowColor} />
+            </marker>
+        );
+
+        // For white: moves from 24 -> 1 (high to low)
+        // For black: moves from 1 -> 24 (low to high)
+
+        // Arrows on the top half
+        const topArrows = [];
+        const bottomArrows = [];
+
+        if (myColor === "white") {
+            // White's perspective: 24 -> 1
+            // Top: points 13-24, arrows point right to left
+            // Bottom: points 12-1, arrows point left to right
+
+            // Top left arrow (points 13-18)
+            topArrows.push(
+                <path
+                    key="arrow-top-left"
+                    d={`M ${BOARD_WIDTH / 2 - 80} 15 L ${120} 15`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-left)"
+                    opacity="0.7"
+                />
+            );
+
+            // Top right arrow (points 19-24)
+            topArrows.push(
+                <path
+                    key="arrow-top-right"
+                    d={`M ${BOARD_WIDTH - 120} 15 L ${BOARD_WIDTH / 2 + 80} 15`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-left)"
+                    opacity="0.7"
+                />
+            );
+
+            // Bottom left arrow (points 12-7)
+            bottomArrows.push(
+                <path
+                    key="arrow-bottom-left"
+                    d={`M ${120} ${GAMEPLAY_BOTTOM + 45} L ${BOARD_WIDTH / 2 - 80} ${GAMEPLAY_BOTTOM + 45}`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-right)"
+                    opacity="0.7"
+                />
+            );
+
+            // Bottom right arrow (points 6-1)
+            bottomArrows.push(
+                <path
+                    key="arrow-bottom-right"
+                    d={`M ${BOARD_WIDTH / 2 + 80} ${GAMEPLAY_BOTTOM + 45} L ${BOARD_WIDTH - 120} ${GAMEPLAY_BOTTOM + 45}`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-right)"
+                    opacity="0.7"
+                />
+            );
+        } else {
+            // Black's perspective: 1 -> 24
+            // Top: points 1-12, arrows point left to right
+            // Bottom: points 24-13, arrows point right to left
+
+            // Top left arrow (points 1-6)
+            topArrows.push(
+                <path
+                    key="arrow-top-left"
+                    d={`M ${120} 15 L ${BOARD_WIDTH / 2 - 80} 15`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-right)"
+                    opacity="0.7"
+                />
+            );
+
+            // Top right arrow (points 7-12)
+            topArrows.push(
+                <path
+                    key="arrow-top-right"
+                    d={`M ${BOARD_WIDTH / 2 + 80} 15 L ${BOARD_WIDTH - 120} 15`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-right)"
+                    opacity="0.7"
+                />
+            );
+
+            // Bottom left arrow (points 24-19)
+            bottomArrows.push(
+                <path
+                    key="arrow-bottom-left"
+                    d={`M ${BOARD_WIDTH / 2 - 80} ${GAMEPLAY_BOTTOM + 45} L ${120} ${GAMEPLAY_BOTTOM + 45}`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-left)"
+                    opacity="0.7"
+                />
+            );
+
+            // Bottom right arrow (points 18-13)
+            bottomArrows.push(
+                <path
+                    key="arrow-bottom-right"
+                    d={`M ${BOARD_WIDTH - 120} ${GAMEPLAY_BOTTOM + 45} L ${BOARD_WIDTH / 2 + 80} ${GAMEPLAY_BOTTOM + 45}`}
+                    stroke={arrowColor}
+                    strokeWidth={arrowWidth}
+                    fill="none"
+                    markerEnd="url(#arrow-left)"
+                    opacity="0.7"
+                />
+            );
+        }
+
+        return (
+            <g>
+                <defs>
+                    {arrowMarker("arrow-right")}
+                    {arrowMarker("arrow-left")}
+                </defs>
+                {topArrows}
+                {bottomArrows}
+            </g>
+        );
+    };
+
     return (
         <svg
             width={BOARD_WIDTH}
@@ -477,6 +657,9 @@ export default function BackgammonBoard({
         >
             {/* Board background - Casino felt */}
             <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="hsl(var(--felt))" />
+
+            {/* Directional arrows */}
+            {renderDirectionalArrows()}
 
             {/* Borne off areas */}
             {renderBorneOff()}
@@ -489,19 +672,27 @@ export default function BackgammonBoard({
 
             {/* Dice display */}
             {gameState.diceRoll && (
-                <g>
-                    <text
-                        x={BOARD_WIDTH / 2}
-                        y={BOARD_HEIGHT - 20}
-                        textAnchor="middle"
-                        fontSize="18"
-                        fontWeight="bold"
+                <foreignObject
+                    x={BOARD_WIDTH / 2 - 90}
+                    y={GAMEPLAY_BOTTOM + 15}
+                    width="180"
+                    height="60"
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            height: "100%",
+                        }}
                     >
-                        Dice: {gameState.diceRoll.map((die, i) => (
-                            `${die}${gameState.diceUsed && gameState.diceUsed[i] ? " (used)" : ""}`
-                        )).join(", ")}
-                    </text>
-                </g>
+                        <DiceDisplay
+                            dice={gameState.diceRoll}
+                            used={gameState.diceUsed || []}
+                            size={41}
+                        />
+                    </div>
+                </foreignObject>
             )}
 
             {/* Dragged checker (ghost) */}

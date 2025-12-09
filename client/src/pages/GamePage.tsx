@@ -8,6 +8,7 @@ import {
     startGame,
 } from "@/api/game";
 import BackgammonBoard from "@/components/game/BackgammonBoard";
+import { DiceDisplay } from "@/components/game/Dice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -473,20 +474,13 @@ export default function GamePage() {
 
                                 {isGameActive && isMyTurn && gameState?.diceRoll && (
                                     <div className="text-sm">
-                                        <p className="font-medium mb-1">Dice:</p>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {gameState.diceRoll.map((die, index) => (
-                                                <div
-                                                    key={index}
-                                                    className={`border-2 rounded-lg p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
-                                                        gameState.diceUsed?.[index]
-                                                            ? "bg-mahogany-dark/50 text-muted-foreground border-gold/20"
-                                                            : "bg-gradient-to-br from-white to-gray-100 border-gold shadow-gold"
-                                                    }`}
-                                                >
-                                                    {die}
-                                                </div>
-                                            ))}
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="font-medium">Dice:</p>
+                                            <DiceDisplay
+                                                dice={gameState.diceRoll}
+                                                used={gameState.diceUsed || []}
+                                                size={45}
+                                            />
                                         </div>
                                         {draggedPoint !== null && (
                                             <p className="text-xs text-muted-foreground mt-2">
