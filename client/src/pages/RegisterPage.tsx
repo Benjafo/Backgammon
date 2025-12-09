@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function RegisterPage() {
@@ -18,16 +18,38 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const { register } = useAuth();
+    const [token, setToken] = useState<string | null>(null);
+    const [tokenError, setTokenError] = useState<string | null>(null);
+    const { register, fetchRegistrationToken } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const getToken = async () => {
+            try {
+                const newToken = await fetchRegistrationToken();
+                setToken(newToken);
+            } catch (err) {
+                setTokenError("Failed to load registration form. Please refresh the page.");
+                console.error("Failed to fetch registration token:", err);
+            }
+        };
+
+        getToken();
+    }, [fetchRegistrationToken]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+
+        if (!token) {
+            setError("Registration token not loaded. Please refresh the page.");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            await register({ username, password });
+            await register({ username, password, token });
             navigate("/lobby");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Registration failed");
@@ -45,6 +67,12 @@ export default function RegisterPage() {
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
+                        {tokenError && (
+                            <p className="text-sm text-destructive">{tokenError}</p>
+                        )}
+                        {!token && !tokenError && (
+                            <p className="text-sm text-muted-foreground">Loading registration form...</p>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="username">Username</Label>
                             <Input
@@ -54,7 +82,7 @@ export default function RegisterPage() {
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Choose a username"
                                 required
-                                disabled={loading}
+                                disabled={loading || !token}
                             />
                         </div>
                         <div className="space-y-2">
@@ -66,14 +94,14 @@ export default function RegisterPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Create a password"
                                 required
-                                disabled={loading}
+                                disabled={loading || !token}
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" variant="casino" className="w-full" disabled={loading}>
-                            {loading ? "Creating account..." : "Register"}
+                        <Button type="submit" variant="casino" className="w-full" disabled={loading || !token}>
+                            {!token ? "Loading..." : loading ? "Creating account..." : "Register"}
                         </Button>
                         <p className="text-sm text-center text-muted-foreground">
                             Already have an account?{" "}

@@ -8,6 +8,7 @@ interface AuthContextType {
     register: (data: RegisterRequest) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    fetchRegistrationToken: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const register = async (data: RegisterRequest) => {
+        if (!data.token) {
+            throw new Error("Registration token is required");
+        }
+
         const res = await fetch("/api/v1/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -72,6 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await checkAuth();
     };
 
+    const fetchRegistrationToken = async (): Promise<string> => {
+        const res = await fetch("/api/v1/auth/register/token", {
+            method: "POST",
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to get registration token");
+        }
+
+        const data = await res.json();
+        return data.token;
+    };
+
     const logout = async () => {
         await fetch("/api/v1/auth/logout", {
             method: "POST",
@@ -81,7 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
+        <AuthContext.Provider
+            value={{ user, loading, login, register, logout, checkAuth, fetchRegistrationToken }}
+        >
             {children}
         </AuthContext.Provider>
     );
