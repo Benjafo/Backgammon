@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -22,8 +23,9 @@ func RegisterTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate secure random token
-	token, err := util.GenerateSecureToken(32)
+	// Generate custom registration token with embedded IP, User-Agent, and timestamp
+	clientIP := util.GetClientIP(r)
+	token, err := util.GenerateRegistrationToken(clientIP, r.UserAgent(), time.Now())
 	if err != nil {
 		log.Printf("Failed to generate token: %v", err)
 		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to generate token")
@@ -34,7 +36,7 @@ func RegisterTokenHandler(w http.ResponseWriter, r *http.Request) {
 	expiresAt := time.Now().Add(15 * time.Minute)
 
 	// Store token in database
-	err = db.CreateRegistrationToken(r.Context(), token, r.RemoteAddr, r.UserAgent(), expiresAt)
+	err = db.CreateRegistrationToken(r.Context(), token, clientIP, r.UserAgent(), expiresAt)
 	if err != nil {
 		log.Printf("Failed to create registration token: %v", err)
 		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to create token")
@@ -71,23 +73,39 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Username) < 3 {
-		util.ErrorResponse(w, http.StatusBadRequest, "Username must be at least 3 characters")
+	// Validate username format and constraints
+	if err := util.ValidateUsername(req.Username); err != nil {
+		util.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if len(req.Password) < 6 {
-		util.ErrorResponse(w, http.StatusBadRequest, "Password must be at least 6 characters")
+	// Validate password strength and complexity
+	_, err := util.ValidatePasswordStrength(req.Password)
+	if err != nil {
+		util.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Validate registration token (CSRF protection)
-	if req.Token != "" {
-		if err := db.ValidateAndUseRegistrationToken(r.Context(), req.Token); err != nil {
-			log.Printf("Invalid registration token: %v", err)
-			util.ErrorResponse(w, http.StatusUnauthorized, "Invalid or expired registration token")
-			return
-		}
+	// Validate registration token
+	if req.Token == "" {
+		util.ErrorResponse(w, http.StatusBadRequest, "Registration token is required")
+		return
+	}
+
+	// Validate token structure and embedded data
+	clientIP := util.GetClientIP(r)
+	_, regErr := util.ValidateRegistrationTokenStructure(req.Token, clientIP, r.UserAgent())
+	if regErr != nil {
+		log.Printf("Token validation failed: %v", regErr)
+		util.ErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid registration token: %v", regErr))
+		return
+	}
+
+	// Check token in database
+	if err := db.ValidateAndUseRegistrationToken(r.Context(), req.Token); err != nil {
+		log.Printf("Token database validation failed: %v", err)
+		util.ErrorResponse(w, http.StatusUnauthorized, "Invalid or expired registration token")
+		return
 	}
 
 	// Check if username already exists

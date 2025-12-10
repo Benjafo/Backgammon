@@ -13,6 +13,7 @@ import {
 import ChatPanel from "@/components/common/ChatPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatContext } from "@/contexts/ChatContext";
 import type { GameData } from "@/types/game";
 import { type Invitation, type LobbyUser } from "@/types/lobby";
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 export default function LobbyPage() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const { messages, connectionStatus, error: chatError, sendMessage } = useChatContext();
 
     const [onlineUsers, setOnlineUsers] = useState<LobbyUser[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
@@ -29,7 +31,7 @@ export default function LobbyPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
-    const [isChatOpen, setIsChatOpen] = useState(true);
+    const [showingPlayers, setShowingPlayers] = useState(false);
 
     // Join lobby on mount, leave on unmount
     useEffect(() => {
@@ -162,7 +164,9 @@ export default function LobbyPage() {
             <div className="min-h-screen bg-felt felt-texture flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-gold/20 border-t-gold mx-auto mb-4" />
-                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">Joining Lobby...</h2>
+                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">
+                        Joining Lobby...
+                    </h2>
                     <p className="text-muted-foreground">Please wait</p>
                 </div>
             </div>
@@ -188,27 +192,6 @@ export default function LobbyPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button
-                            onClick={() => setIsChatOpen(!isChatOpen)}
-                            variant="casino"
-                            size="sm"
-                            className="gap-2"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                            Chat
-                        </Button>
                         <Button onClick={logout} variant="destructive" size="sm">
                             Logout
                         </Button>
@@ -223,154 +206,61 @@ export default function LobbyPage() {
                 </div>
             )}
 
-            {/* Main Content - Split Panel Layout */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Left Panel - Main Lobby Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Active Games Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-heading text-gold">My Games</h2>
-                                {activeGames.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
-                                        {activeGames.length}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
-                            {activeGames.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="32"
-                                            height="32"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-gold"
-                                        >
-                                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                                            <path d="M3 9h18" />
-                                            <path d="M9 21V9" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                        No active games
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Challenge a player below to start a game
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="divide-y">
-                                    {activeGames.map((game) => {
-                                        const isPlayer1 = game.player1.userId === user?.id;
-                                        const opponent = isPlayer1 ? game.player2 : game.player1;
-                                        const myColor = isPlayer1
-                                            ? game.player1.color
-                                            : game.player2.color;
-
-                                        return (
-                                            <div
-                                                key={game.gameId}
-                                                className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
-                                            >
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-sm">
-                                                        vs {opponent.username}
-                                                    </p>
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gold/20 text-gold-light border border-gold/40">
-                                                            {myColor}
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {game.gameStatus === "pending"
-                                                                ? "Waiting to start"
-                                                                : "In progress"}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    variant="casino"
-                                                    onClick={() => navigate(`/game/${game.gameId}`)}
-                                                >
-                                                    Join Game
-                                                </Button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+            {/* Main Content - With right padding for fixed chat */}
+            <div className="flex-1 overflow-hidden">
+                {/* Main Lobby Content */}
+                <div className="h-full p-6 pr-[336px] flex flex-col">
+                    {/* Header with toggle */}
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-heading text-gold">
+                                {showingPlayers ? "Find Players" : "Games"}
+                            </h2>
+                            {!showingPlayers && (
+                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
+                                    {activeGames.length +
+                                        receivedInvitations.length +
+                                        sentInvitations.length}
+                                </span>
+                            )}
+                            {showingPlayers && onlineUsers.length > 0 && (
+                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
+                                    {onlineUsers.length}
+                                </span>
                             )}
                         </div>
+                        <Button
+                            onClick={() => setShowingPlayers(!showingPlayers)}
+                            variant="casino"
+                            size="sm"
+                        >
+                            {showingPlayers ? "My Games" : "Find Players"}
+                        </Button>
                     </div>
 
-                    {/* Invitations Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-heading text-gold">Invitations</h2>
-                                {receivedInvitations.length + sentInvitations.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
-                                        {receivedInvitations.length + sentInvitations.length}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
-                            {receivedInvitations.length === 0 && sentInvitations.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="32"
-                                            height="32"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-gold"
-                                        >
-                                            <rect
-                                                x="2"
-                                                y="7"
-                                                width="20"
-                                                height="14"
-                                                rx="2"
-                                                ry="2"
-                                            />
-                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                        No pending invitations
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Invitations will appear here
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="divide-y">
-                                    {/* Received Invitations */}
+                    {/* Main Card - Fixed height with internal scroll */}
+                    <div className="flex-1 bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg overflow-hidden flex flex-col">
+                        <div
+                            className="flex-1 overflow-y-auto custom-scrollbar"
+                            style={{
+                                scrollbarWidth: "thin",
+                                scrollbarColor: "#3f3f46 transparent",
+                            }}
+                        >
+                            {!showingPlayers ? (
+                                <div className="divide-y divide-gold/20">
+                                    {/* Received Invitations - At top with attention-grabbing style */}
                                     {receivedInvitations.map((invitation) => (
                                         <div
                                             key={`received-${invitation.invitationId}`}
-                                            className="p-4 flex items-center justify-between hover:bg-accent/50 transition-all duration-200 bg-green-50/50 dark:bg-green-950/20"
+                                            className="p-4 flex items-center justify-between transition-all duration-200 bg-gold/10 border-l-4 border-gold hover:bg-gold/15"
                                         >
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                                                        Received
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gold text-mahogany">
+                                                        GAME INVITATION
                                                     </span>
-                                                    <p className="font-semibold text-sm">
+                                                    <p className="font-semibold text-sm text-gold-light">
                                                         from {invitation.challenger.username}
                                                     </p>
                                                 </div>
@@ -408,7 +298,7 @@ export default function LobbyPage() {
                                     {sentInvitations.map((invitation) => (
                                         <div
                                             key={`sent-${invitation.invitationId}`}
-                                            className="p-4 flex items-center justify-between hover:bg-accent/50 transition-all duration-200"
+                                            className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
                                         >
                                             <div className="flex-1">
                                                 {invitation.status === "pending" ? (
@@ -466,114 +356,185 @@ export default function LobbyPage() {
                                             )}
                                         </div>
                                     ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Online Players Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-heading text-gold">
-                                    Online Players
-                                </h2>
-                                {onlineUsers.length > 0 && (
-                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
-                                        {onlineUsers.length}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-black/60 backdrop-blur-sm rounded-xl border-2 border-gold shadow-lg min-h-[200px]">
-                            {onlineUsers.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="32"
-                                            height="32"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-gold"
-                                        >
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                            <circle cx="9" cy="7" r="4" />
-                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                        No other players online
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Waiting for players to join...
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="divide-y">
-                                    {onlineUsers.map((player) => {
-                                        const hasPendingInvitation = sentInvitations.some(
-                                            (inv) =>
-                                                inv.challenged.userId === player.userId &&
-                                                inv.status === "pending"
-                                        );
+                                    {/* Active Games */}
+                                    {activeGames.map((game) => {
+                                        const isPlayer1 = game.player1.userId === user?.id;
+                                        const opponent = isPlayer1 ? game.player2 : game.player1;
+                                        const myColor = isPlayer1
+                                            ? game.player1.color
+                                            : game.player2.color;
+
                                         return (
                                             <div
-                                                key={player.userId}
+                                                key={game.gameId}
                                                 className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center flex-shrink-0 shadow-poker-chip ring-2 ring-gold-light/40 hover:ring-4 hover:ring-gold/60 transition-all">
-                                                        <span className="text-sm font-bold text-mahogany">
-                                                            {player.username
-                                                                .slice(0, 2)
-                                                                .toUpperCase()}
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-sm">
+                                                        vs {opponent.username}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-1.5">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gold/20 text-gold-light border border-gold/40">
+                                                            {myColor}
                                                         </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="relative">
-                                                            <p className="font-semibold text-sm">
-                                                                {player.username}
-                                                            </p>
-                                                            <div className="absolute -top-0.5 -right-3">
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-card"></div>
-                                                            </div>
-                                                        </div>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {game.gameStatus === "pending"
+                                                                ? "Waiting to start"
+                                                                : "In progress"}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <Button
                                                     size="sm"
-                                                    onClick={() => handleChallenge(player.userId)}
-                                                    disabled={
-                                                        actionLoading === player.userId ||
-                                                        hasPendingInvitation
-                                                    }
-                                                    variant={
-                                                        hasPendingInvitation ? "outline" : "casino"
-                                                    }
+                                                    variant="casino"
+                                                    onClick={() => navigate(`/game/${game.gameId}`)}
                                                 >
-                                                    {hasPendingInvitation ? "Invited" : "Challenge"}
+                                                    Join Game
                                                 </Button>
                                             </div>
                                         );
                                     })}
+
+                                    {/* Empty state */}
+                                    {activeGames.length === 0 &&
+                                        receivedInvitations.length === 0 &&
+                                        sentInvitations.length === 0 && (
+                                            <div className="p-8 text-center">
+                                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        width="32"
+                                                        height="32"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        className="text-gold"
+                                                    >
+                                                        <rect
+                                                            x="3"
+                                                            y="3"
+                                                            width="18"
+                                                            height="18"
+                                                            rx="2"
+                                                        />
+                                                        <path d="M3 9h18" />
+                                                        <path d="M9 21V9" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                    No activity yet
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Click "Find Players" to challenge someone!
+                                                </p>
+                                            </div>
+                                        )}
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gold/20">
+                                    {/* Online Players */}
+                                    {onlineUsers.length === 0 ? (
+                                        <div className="p-8 text-center">
+                                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="32"
+                                                    height="32"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="text-gold"
+                                                >
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                                    <circle cx="9" cy="7" r="4" />
+                                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                No other players in the lobby
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Waiting for players to join...
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        onlineUsers.map((player) => {
+                                            const hasPendingInvitation = sentInvitations.some(
+                                                (inv) =>
+                                                    inv.challenged.userId === player.userId &&
+                                                    inv.status === "pending"
+                                            );
+                                            return (
+                                                <div
+                                                    key={player.userId}
+                                                    className="p-4 flex items-center justify-between hover:bg-gold/5 transition-all duration-200"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center flex-shrink-0 shadow-poker-chip ring-2 ring-gold-light/40 hover:ring-4 hover:ring-gold/60 transition-all">
+                                                            <span className="text-sm font-bold text-mahogany">
+                                                                {player.username
+                                                                    .slice(0, 2)
+                                                                    .toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="relative">
+                                                                <p className="font-semibold text-sm">
+                                                                    {player.username}
+                                                                </p>
+                                                                <div className="absolute -top-0.5 -right-3">
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-card"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            handleChallenge(player.userId)
+                                                        }
+                                                        disabled={
+                                                            actionLoading === player.userId ||
+                                                            hasPendingInvitation
+                                                        }
+                                                        variant={
+                                                            hasPendingInvitation
+                                                                ? "outline"
+                                                                : "casino"
+                                                        }
+                                                    >
+                                                        {hasPendingInvitation
+                                                            ? "Invited"
+                                                            : "Challenge"}
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Panel - Chat */}
-                {isChatOpen && (
-                    <div className="w-80 flex-shrink-0 border-l bg-card/30">
-                        <ChatPanel currentUsername={user?.username || "Guest"} />
-                    </div>
-                )}
+                {/* Fixed Chat Panel on Right */}
+                <div className="fixed top-0 right-0 bottom-0 w-80 border-l border-gold/20 bg-card/30 backdrop-blur-sm z-40">
+                    <ChatPanel
+                        currentUsername={user?.username || "Guest"}
+                        messages={messages}
+                        connectionStatus={connectionStatus}
+                        error={chatError}
+                        sendMessage={sendMessage}
+                    />
+                </div>
             </div>
         </div>
     );

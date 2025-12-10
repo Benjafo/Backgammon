@@ -1,6 +1,7 @@
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { PublicRoute } from "@/components/common/PublicRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
 import GamePage from "@/pages/GamePage";
 import LobbyPage from "@/pages/LobbyPage";
 import LoginPage from "@/pages/LoginPage";
@@ -10,7 +11,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
+            <ChatProvider>
+                <BrowserRouter>
                 <Routes>
                     {/* Public routes */}
                     <Route
@@ -53,6 +55,7 @@ function App() {
                     <Route path="*" element={<Navigate to="/lobby" replace />} />
                 </Routes>
             </BrowserRouter>
+            </ChatProvider>
         </AuthProvider>
     );
 }

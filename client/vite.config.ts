@@ -16,6 +16,7 @@ export default defineConfig({
             "/api": {
                 target: "http://backend-dev:8080", // Docker service name
                 changeOrigin: true,
+                ws: true, // Enable WebSocket proxying
             },
         },
         watch: {

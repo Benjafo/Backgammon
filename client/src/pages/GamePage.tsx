@@ -7,13 +7,32 @@ import {
     rollDice,
     startGame,
 } from "@/api/game";
+import ChatPanel from "@/components/common/ChatPanel";
 import BackgammonBoard from "@/components/game/BackgammonBoard";
+import { DiceDisplay } from "@/components/game/Dice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { GameChatProvider, useGameChatContext } from "@/contexts/ChatContext";
 import type { GameData, GameState, LegalMove } from "@/types/game";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
+// Separate component to avoid recreation on every GamePage render
+function GameChatPanel({ currentUsername }: { currentUsername: string }) {
+    const { messages, connectionStatus, error, sendMessage } = useGameChatContext();
+    return (
+        <ChatPanel
+            currentUsername={currentUsername}
+            messages={messages}
+            connectionStatus={connectionStatus}
+            error={error}
+            sendMessage={sendMessage}
+            title="Game Chat"
+            subtitle="Chat with your opponent"
+        />
+    );
+}
 
 export default function GamePage() {
     const { gameId } = useParams<{ gameId: string }>();
@@ -350,202 +369,208 @@ export default function GamePage() {
     const myColor = myPlayer.color as "white" | "black";
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-gold-light">
-                            Backgammon Game
-                        </h1>
-                        <p className="text-sm text-muted-foreground">Game #{gameId}</p>
-                    </div>
-                    <Button onClick={handleBackToLobby} variant="outline" size="sm">
-                        Back to Lobby
-                    </Button>
-                </div>
-
-                {error && (
-                    <Card className="mb-4 border-destructive">
-                        <CardContent className="pt-4">
-                            <p className="text-destructive text-sm">{error}</p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-                    {/* Board */}
-                    <div>
-                        {gameState && gameData.gameStatus !== "pending" ? (
-                            <BackgammonBoard
-                                gameState={gameState}
-                                myColor={myColor}
-                                isMyTurn={isMyTurn && isGameActive}
-                                legalMoves={isGameActive ? legalMoves : []}
-                                draggedPoint={isGameActive ? draggedPoint : null}
-                                onDragStart={handleDragStart}
-                                onDrop={handleDrop}
-                            />
-                        ) : (
-                            <div className="border-2 border-dashed rounded-lg p-12 text-center">
-                                <p className="text-muted-foreground">Game not started yet</p>
-                            </div>
-                        )}
+        <GameChatProvider gameId={gameId ? parseInt(gameId) : null}>
+            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4 pr-[336px]">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h1 className="text-3xl font-display font-bold text-gold-light">
+                                Backgammon Game
+                            </h1>
+                            <p className="text-sm text-muted-foreground">Game #{gameId}</p>
+                        </div>
+                        <Button onClick={handleBackToLobby} variant="outline" size="sm">
+                            Back to Lobby
+                        </Button>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-4">
-                        {/* Game Status */}
-                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-lg">Status</CardTitle>
-                                <CardDescription className="capitalize">
-                                    {gameData.gameStatus.replace("_", " ")}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div
-                                    className={`p-3 border-2 rounded-ornate text-sm ${
-                                        isMyTurn
-                                            ? "bg-gold/10 border-gold shadow-gold"
-                                            : "border-gold/30"
-                                    }`}
-                                >
-                                    <p className="font-medium">{myPlayer.username} (You)</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {myPlayer.color}
-                                        {isMyTurn && " - Your turn!"}
-                                    </p>
-                                </div>
-                                <div
-                                    className={`p-3 border-2 rounded-ornate text-sm ${
-                                        !isMyTurn && isGameActive
-                                            ? "bg-gold/10 border-gold shadow-gold"
-                                            : "border-gold/30"
-                                    }`}
-                                >
-                                    <p className="font-medium">{opponentPlayer.username}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {opponentPlayer.color}
-                                        {!isMyTurn && isGameActive && " - Their turn"}
-                                    </p>
-                                </div>
+                    {error && (
+                        <Card className="mb-4 border-destructive">
+                            <CardContent className="pt-4">
+                                <p className="text-destructive text-sm">{error}</p>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                                {gameData.winnerId && (
-                                    <div className="border-t pt-3">
-                                        <p className="text-sm font-medium">
-                                            {gameData.winnerId === myPlayer.userId
-                                                ? "You won!"
-                                                : "Better luck next time!"}
+                    <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+                        {/* Board */}
+                        <div className="lg:col-span-1">
+                            {gameState && gameData.gameStatus !== "pending" ? (
+                                <BackgammonBoard
+                                    gameState={gameState}
+                                    myColor={myColor}
+                                    isMyTurn={isMyTurn && isGameActive}
+                                    legalMoves={isGameActive ? legalMoves : []}
+                                    draggedPoint={isGameActive ? draggedPoint : null}
+                                    onDragStart={handleDragStart}
+                                    onDrop={handleDrop}
+                                />
+                            ) : (
+                                <div className="border-2 border-dashed rounded-lg p-12 text-center">
+                                    <p className="text-muted-foreground">Game not started yet</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sidebar */}
+                        <div className="space-y-4">
+                            {/* Game Status */}
+                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-lg">Status</CardTitle>
+                                    <CardDescription className="capitalize">
+                                        {gameData.gameStatus.replace("_", " ")}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div
+                                        className={`p-3 border-2 rounded-ornate text-sm ${
+                                            isMyTurn
+                                                ? "bg-gold/10 border-gold shadow-gold"
+                                                : "border-gold/30"
+                                        }`}
+                                    >
+                                        <p className="font-medium">{myPlayer.username} (You)</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {myPlayer.color}
+                                            {isMyTurn && " - Your turn!"}
                                         </p>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Actions */}
-                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-lg">Actions</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                {gameData.gameStatus === "pending" && (
-                                    <Button
-                                        onClick={handleStartGame}
-                                        disabled={actionLoading}
-                                        variant="casino"
-                                        className="w-full"
-                                        size="sm"
+                                    <div
+                                        className={`p-3 border-2 rounded-ornate text-sm ${
+                                            !isMyTurn && isGameActive
+                                                ? "bg-gold/10 border-gold shadow-gold"
+                                                : "border-gold/30"
+                                        }`}
                                     >
-                                        Start Game
-                                    </Button>
-                                )}
-
-                                {isGameActive && isMyTurn && !gameState?.diceRoll && (
-                                    <Button
-                                        onClick={handleRollDice}
-                                        disabled={actionLoading}
-                                        variant="casino"
-                                        className="w-full"
-                                    >
-                                        Roll Dice
-                                    </Button>
-                                )}
-
-                                {isGameActive && isMyTurn && gameState?.diceRoll && (
-                                    <div className="text-sm">
-                                        <p className="font-medium mb-1">Dice:</p>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {gameState.diceRoll.map((die, index) => (
-                                                <div
-                                                    key={index}
-                                                    className={`border-2 rounded-lg p-2 flex items-center justify-center w-12 h-12 text-lg font-bold ${
-                                                        gameState.diceUsed?.[index]
-                                                            ? "bg-mahogany-dark/50 text-muted-foreground border-gold/20"
-                                                            : "bg-gradient-to-br from-white to-gray-100 border-gold shadow-gold"
-                                                    }`}
-                                                >
-                                                    {die}
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {draggedPoint !== null && (
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                Dragging from{" "}
-                                                {draggedPoint === 0
-                                                    ? "Bar"
-                                                    : `Point ${draggedPoint}`}
-                                            </p>
-                                        )}
-                                        {legalMoves.length === 0 && !actionLoading && (
-                                            <p className="text-xs text-destructive mt-2">
-                                                No legal moves available
-                                            </p>
-                                        )}
+                                        <p className="font-medium">{opponentPlayer.username}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {opponentPlayer.color}
+                                            {!isMyTurn && isGameActive && " - Their turn"}
+                                        </p>
                                     </div>
-                                )}
 
-                                {isGameActive && (
-                                    <Button
-                                        onClick={handleForfeit}
-                                        disabled={actionLoading}
-                                        variant="destructive"
-                                        className="w-full"
-                                        size="sm"
-                                    >
-                                        Forfeit Game
-                                    </Button>
-                                )}
+                                    {gameData.winnerId && (
+                                        <div className="border-t pt-3">
+                                            <p className="text-sm font-medium">
+                                                {gameData.winnerId === myPlayer.userId
+                                                    ? "You won!"
+                                                    : "Better luck next time!"}
+                                            </p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
 
-                                {!isGameActive && gameData.gameStatus !== "pending" && (
-                                    <p className="text-xs text-muted-foreground text-center py-4">
-                                        Game has ended. You can view the results but navigating away
-                                        will prevent you from returning.
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
+                            {/* Actions */}
+                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-lg">Actions</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {gameData.gameStatus === "pending" && (
+                                        <Button
+                                            onClick={handleStartGame}
+                                            disabled={actionLoading}
+                                            variant="casino"
+                                            className="w-full"
+                                            size="sm"
+                                        >
+                                            Start Game
+                                        </Button>
+                                    )}
 
-                        {/* Info */}
-                        <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-lg">Info</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-xs text-muted-foreground space-y-1">
-                                <p>Game Created: {new Date(gameData.createdAt).toLocaleString()}</p>
-                                {gameData.startedAt && (
+                                    {isGameActive && isMyTurn && !gameState?.diceRoll && (
+                                        <Button
+                                            onClick={handleRollDice}
+                                            disabled={actionLoading}
+                                            variant="casino"
+                                            className="w-full"
+                                        >
+                                            Roll Dice
+                                        </Button>
+                                    )}
+
+                                    {isGameActive && isMyTurn && gameState?.diceRoll && (
+                                        <div className="text-sm">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <p className="font-medium">Dice:</p>
+                                                <DiceDisplay
+                                                    dice={gameState.diceRoll}
+                                                    used={gameState.diceUsed || []}
+                                                    size={45}
+                                                />
+                                            </div>
+                                            {draggedPoint !== null && (
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    Dragging from{" "}
+                                                    {draggedPoint === 0
+                                                        ? "Bar"
+                                                        : `Point ${draggedPoint}`}
+                                                </p>
+                                            )}
+                                            {legalMoves.length === 0 && !actionLoading && (
+                                                <p className="text-xs text-destructive mt-2">
+                                                    No legal moves available
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {isGameActive && (
+                                        <Button
+                                            onClick={handleForfeit}
+                                            disabled={actionLoading}
+                                            variant="destructive"
+                                            className="w-full"
+                                            size="sm"
+                                        >
+                                            Forfeit Game
+                                        </Button>
+                                    )}
+
+                                    {!isGameActive && gameData.gameStatus !== "pending" && (
+                                        <p className="text-xs text-muted-foreground text-center py-4">
+                                            Game has ended. You can view the results but navigating
+                                            away will prevent you from returning.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Info */}
+                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-lg">Info</CardTitle>
+                                </CardHeader>
+                                <CardContent className="text-xs text-muted-foreground space-y-1">
                                     <p>
-                                        Game Started:{" "}
-                                        {new Date(gameData.startedAt).toLocaleString()}
+                                        Game Created:{" "}
+                                        {new Date(gameData.createdAt).toLocaleString()}
                                     </p>
-                                )}
-                                {gameData.endedAt && (
-                                    <p>Game Ended: {new Date(gameData.endedAt).toLocaleString()}</p>
-                                )}
-                            </CardContent>
-                        </Card>
+                                    {gameData.startedAt && (
+                                        <p>
+                                            Game Started:{" "}
+                                            {new Date(gameData.startedAt).toLocaleString()}
+                                        </p>
+                                    )}
+                                    {gameData.endedAt && (
+                                        <p>
+                                            Game Ended:{" "}
+                                            {new Date(gameData.endedAt).toLocaleString()}
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
                 </div>
+
+                {/* Fixed Chat Panel on Right */}
+                <div className="fixed top-0 right-0 bottom-0 w-80 border-l border-gold/20 bg-card/30 backdrop-blur-sm z-40">
+                    <GameChatPanel currentUsername={user?.username || ""} />
+                </div>
             </div>
-        </div>
+        </GameChatProvider>
     );
 }

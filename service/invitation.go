@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -393,6 +394,11 @@ func parseInvitationIDFromPath(path, prefix, suffix string) (int, error) {
 	id, err := strconv.Atoi(trimmed)
 	if err != nil {
 		return 0, err
+	}
+
+	// Validate ID is positive
+	if id <= 0 {
+		return 0, errors.New("invitation ID must be a positive integer")
 	}
 
 	return id, nil
