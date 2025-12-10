@@ -1,5 +1,7 @@
 package service
 
+import "encoding/json"
+
 // ============================================================================
 // Auth & User Types
 // ============================================================================
@@ -38,4 +40,38 @@ type MoveRequest struct {
 
 type CreateInvitationRequest struct {
 	ChallengedID int `json:"challengedId"`
+}
+
+// ============================================================================
+// WebSocket & Chat Types
+// ============================================================================
+
+type WSMessage struct {
+	Type string          `json:"type"` // "send_message", "chat_message", "history", "user_joined", "user_left", "error"
+	Data json.RawMessage `json:"data"`
+}
+
+type SendMessageRequest struct {
+	Message string `json:"message"`
+}
+
+type ChatMessageData struct {
+	MessageID int    `json:"messageId"`
+	UserID    int    `json:"userId"`
+	Username  string `json:"username"`
+	Message   string `json:"message"`
+	Timestamp string `json:"timestamp"` // ISO 8601 format
+}
+
+type MessageHistoryData struct {
+	Messages []ChatMessageData `json:"messages"`
+}
+
+type UserEventData struct {
+	UserID   int    `json:"userId"`
+	Username string `json:"username"`
+}
+
+type ErrorData struct {
+	Message string `json:"message"`
 }

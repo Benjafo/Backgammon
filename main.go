@@ -7,12 +7,21 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/time/rate"
+
+	"backgammon/middleware"
 	"backgammon/repository"
 	"backgammon/service"
 	"backgammon/util"
 )
 
 var db *repository.Postgres
+
+var (
+	authLimiter = middleware.NewRateLimiter(rate.Every(12*time.Second), 5) // Auth: 5 requests per minute
+	gameLimiter = middleware.NewRateLimiter(rate.Every(2*time.Second), 30) // Game: 30 requests per minute
+	readLimiter = middleware.NewRateLimiter(rate.Every(time.Second), 60) // Reads: 60 requests per minute
+)
 
 func main() {
 	// Initialize database connection
@@ -29,15 +38,27 @@ func main() {
 	}
 	log.Println("Database connection established successfully")
 
+	// Ensure lobby chat room exists
+	roomID, err := db.EnsureLobbyRoomExists(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to create lobby chat room: %v", err)
+	}
+	log.Printf("Lobby chat room initialized (ID: %d)", roomID)
+
+	// Initialize WebSocket hub for chat
+	chatHub := service.NewHub()
+	go chatHub.Run()
+	log.Println("WebSocket hub initialized and running")
+
 	// Routers
 	mux := http.NewServeMux()          // Unprotected endpoints
 	protectedMux := http.NewServeMux() // Protected endpoints (require authentication)
 
 	// Public endpoints
 	mux.HandleFunc("/api/v1/health", service.HealthCheckHandler)
-	mux.HandleFunc("/api/v1/auth/login", service.LoginHandler)
-	mux.HandleFunc("/api/v1/auth/register", service.RegisterHandler)
-	mux.HandleFunc("/api/v1/auth/register/token", service.RegisterTokenHandler)
+	mux.HandleFunc("/api/v1/auth/login", authLimiter.Limit(service.LoginHandler))
+	mux.HandleFunc("/api/v1/auth/register", authLimiter.Limit(service.RegisterHandler))
+	mux.HandleFunc("/api/v1/auth/register/token", authLimiter.Limit(service.RegisterTokenHandler))
 
 	// Protected auth endpoints
 	protectedMux.HandleFunc("/api/v1/auth/logout", service.LogoutHandler)
@@ -56,7 +77,8 @@ func main() {
 	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
 	protectedMux.HandleFunc("/api/v1/games/", service.GameRouterHandler)
 
-	// Chat endpoint
+	// Chat endpoints
+	protectedMux.HandleFunc("/api/v1/lobby/ws", service.ChatWebSocketHandler(chatHub))
 	// protectedMux.HandleFunc("/api/v1/chat/rooms/{:roomId}/messages", service.ChatMessagesHandler)
 
 	// Apply session middleware to protected routes
@@ -70,7 +92,6 @@ func main() {
 	// Serve React app (built frontend)
 	fs := http.FileServer(http.Dir("./static/dist/"))
 	mux.Handle("/", fs)
-
 
 	// TODO move cleanup jobs to a separate service
 	go func() {

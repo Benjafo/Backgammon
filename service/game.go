@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -302,6 +303,11 @@ func parseGameIDFromPath(path string) (int, error) {
 		return 0, err
 	}
 
+	// Validate ID is positive
+	if id <= 0 {
+		return 0, errors.New("game ID must be a positive integer")
+	}
+
 	return id, nil
 }
 
@@ -575,10 +581,37 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		diceIndicesToMark = req.DiceIndices
 
-		// For combined moves, validate by simulating each step
-		// The frontend already validated this is a legal combined move
+		// Validate move coordinates
+		if req.FromPoint < 0 || req.FromPoint > 25 || req.ToPoint < 0 || req.ToPoint > 25 {
+			util.ErrorResponse(w, http.StatusBadRequest, "Invalid point values")
+			return
+		}
+
+		// For combined moves, DieUsed should be the sum of the dice being used
+		// Validate that it matches the sum of the specified dice
+		expectedSum := 0
+		for _, idx := range req.DiceIndices {
+			expectedSum += state.DiceRoll[idx]
+		}
+		if req.DieUsed != expectedSum {
+			util.ErrorResponse(w, http.StatusBadRequest, "Die value does not match sum of dice")
+			return
+		}
+
+		// Always validate moves server-side, even for combined moves
+		err = business.ValidateMove(state.BoardState, req.FromPoint, req.ToPoint, req.DieUsed, color, barCount)
+		if err != nil {
+			util.ErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
 	} else {
-		// Single die move: validate and find the die
+		// Single die move: validate die value first
+		if req.DieUsed < 1 || req.DieUsed > 6 {
+			util.ErrorResponse(w, http.StatusBadRequest, "Die value must be between 1 and 6")
+			return
+		}
+
+		// Validate the move
 		err = business.ValidateMove(state.BoardState, req.FromPoint, req.ToPoint, req.DieUsed, color, barCount)
 		if err != nil {
 			util.ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -813,9 +846,11 @@ func GetLegalMovesHandler(w http.ResponseWriter, r *http.Request) {
 	movesList := []map[string]interface{}{}
 	for _, move := range legalMoves {
 		movesList = append(movesList, map[string]interface{}{
-			"fromPoint": move.FromPoint,
-			"toPoint":   move.ToPoint,
-			"dieUsed":   move.DieUsed,
+			"fromPoint":      move.FromPoint,
+			"toPoint":        move.ToPoint,
+			"dieUsed":        move.DieUsed,
+			"diceIndices":    move.DiceIndices,
+			"isCombinedMove": move.IsCombinedMove,
 		})
 	}
 
