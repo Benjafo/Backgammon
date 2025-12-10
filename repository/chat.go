@@ -110,6 +110,7 @@ func (pg *Postgres) SaveChatMessage(ctx context.Context, roomID, userID int, mes
 }
 
 // GetRecentMessages retrieves the most recent messages from a chat room
+// Only returns messages from the last 30 minutes OR up to the limit, whichever is fewer
 func (pg *Postgres) GetRecentMessages(ctx context.Context, roomID int, limit int) ([]*ChatMessage, error) {
 	query := `
 		SELECT
@@ -121,7 +122,7 @@ func (pg *Postgres) GetRecentMessages(ctx context.Context, roomID int, limit int
 			cm.timestamp
 		FROM CHAT_MESSAGE cm
 		JOIN "USER" u ON cm.user_id = u.user_id
-		WHERE cm.room_id = $1
+		WHERE cm.room_id = $1 AND cm.timestamp > NOW() - INTERVAL '30 minutes'
 		ORDER BY cm.timestamp DESC
 		LIMIT $2
 	`

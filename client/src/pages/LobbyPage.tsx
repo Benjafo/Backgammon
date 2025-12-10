@@ -253,12 +253,12 @@ export default function LobbyPage() {
                                     {receivedInvitations.map((invitation) => (
                                         <div
                                             key={`received-${invitation.invitationId}`}
-                                            className="p-4 flex items-center justify-between transition-all duration-200 bg-gold/10 border-l-4 border-gold animate-pulse hover:animate-none hover:bg-gold/15"
+                                            className="p-4 flex items-center justify-between transition-all duration-200 bg-gold/10 border-l-4 border-gold hover:bg-gold/15"
                                         >
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gold text-mahogany">
-                                                        NEW CHALLENGE!
+                                                        GAME INVITATION
                                                     </span>
                                                     <p className="font-semibold text-sm text-gold-light">
                                                         from {invitation.challenger.username}
