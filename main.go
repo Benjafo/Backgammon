@@ -96,9 +96,24 @@ func main() {
 	swagger := http.FileServer(http.Dir("./static/swagger/"))
 	mux.Handle("/swagger/", http.StripPrefix("/swagger/", swagger))
 
-	// Serve React app (built frontend)
-	fs := http.FileServer(http.Dir("./static/dist/"))
-	mux.Handle("/", fs)
+	// Serve React app (built frontend) with SPA fallback
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Serve index.html for the root path
+		if r.URL.Path == "/" {
+			http.ServeFile(w, r, "./static/dist/index.html")
+			return
+		}
+
+		// Try to serve the requested file
+		filePath := "./static/dist" + r.URL.Path
+		if _, err := os.Stat(filePath); err == nil {
+			http.ServeFile(w, r, filePath)
+			return
+		}
+
+		// If file doesn't exist, serve index.html (SPA fallback)
+		http.ServeFile(w, r, "./static/dist/index.html")
+	})
 
 	// TODO move cleanup jobs to a separate service
 	go func() {
