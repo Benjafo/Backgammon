@@ -10,6 +10,7 @@ import {
 } from "@/types/chat";
 import { useAuth } from "@/contexts/AuthContext";
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { useGameWebSocket } from "@/hooks/useGameWebSocket";
 
 interface ChatContextType {
     messages: ChatMessage[];
@@ -153,6 +154,137 @@ export function useChatContext() {
     const context = useContext(ChatContext);
     if (context === undefined) {
         throw new Error("useChatContext must be used within a ChatProvider");
+    }
+    return context;
+}
+
+// Game Chat Context (for game-specific chat rooms)
+const GameChatContext = createContext<ChatContextType | undefined>(undefined);
+
+interface GameChatProviderProps {
+    children: ReactNode;
+    gameId: number | null;
+}
+
+export function GameChatProvider({ children, gameId }: GameChatProviderProps) {
+    const { user } = useAuth();
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleMessage = useCallback((wsMessage: WSMessage) => {
+        switch (wsMessage.type) {
+            case "history": {
+                const data = wsMessage.data as MessageHistoryData;
+                const historyMessages: ChatMessage[] = data.messages.map(
+                    (msg: ChatMessageData) => ({
+                        messageId: msg.messageId,
+                        userId: msg.userId,
+                        username: msg.username,
+                        message: msg.message,
+                        timestamp: msg.timestamp,
+                    })
+                );
+                setMessages(historyMessages);
+                break;
+            }
+
+            case "chat_message": {
+                const data = wsMessage.data as ChatMessageData;
+                const newMessage: ChatMessage = {
+                    messageId: data.messageId,
+                    userId: data.userId,
+                    username: data.username,
+                    message: data.message,
+                    timestamp: data.timestamp,
+                };
+                setMessages((prev) => [...prev, newMessage]);
+                break;
+            }
+
+            case "user_joined": {
+                const data = wsMessage.data as UserEventData;
+                console.log(`User ${data.username} joined the game chat`);
+                break;
+            }
+
+            case "user_left": {
+                const data = wsMessage.data as UserEventData;
+                console.log(`User ${data.username} left the game chat`);
+                break;
+            }
+
+            case "error": {
+                const data = wsMessage.data as ErrorData;
+                setError(data.message);
+                console.error("Game chat error:", data.message);
+                setTimeout(() => setError(null), 5000);
+                break;
+            }
+
+            default:
+                console.warn("Unknown message type:", wsMessage.type);
+        }
+    }, []);
+
+    const handleOpen = useCallback(() => {
+        console.log("Game chat WebSocket connected");
+        setError(null);
+    }, []);
+
+    const handleClose = useCallback(() => {
+        console.log("Game chat WebSocket disconnected");
+    }, []);
+
+    const handleError = useCallback((error: Event) => {
+        console.error("Game chat WebSocket error:", error);
+        setError("Connection error. Reconnecting...");
+    }, []);
+
+    const { status, sendMessage: wsSendMessage } = useGameWebSocket({
+        gameId,
+        onMessage: handleMessage,
+        onOpen: handleOpen,
+        onClose: handleClose,
+        onError: handleError,
+        enabled: !!user && !!gameId,
+    });
+
+    const sendMessage = useCallback(
+        (message: string): boolean => {
+            if (!message.trim()) {
+                return false;
+            }
+
+            const wsMessage: WSMessage = {
+                type: "send_message",
+                data: {
+                    message: message.trim(),
+                },
+            };
+
+            return wsSendMessage(wsMessage);
+        },
+        [wsSendMessage]
+    );
+
+    return (
+        <GameChatContext.Provider
+            value={{
+                messages,
+                connectionStatus: status,
+                error,
+                sendMessage,
+            }}
+        >
+            {children}
+        </GameChatContext.Provider>
+    );
+}
+
+export function useGameChatContext() {
+    const context = useContext(GameChatContext);
+    if (context === undefined) {
+        throw new Error("useGameChatContext must be used within a GameChatProvider");
     }
     return context;
 }

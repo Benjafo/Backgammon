@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -50,6 +51,14 @@ func ChatWebSocketHandler(hub *Hub) http.HandlerFunc {
 			return
 		}
 
+		// Get or create lobby room
+		roomID, err := db.EnsureLobbyRoomExists(r.Context())
+		if err != nil {
+			log.Printf("Error getting lobby room: %v", err)
+			util.ErrorResponse(w, http.StatusInternalServerError, "Failed to get lobby room")
+			return
+		}
+
 		// Create client
 		client := &Client{
 			hub:      hub,
@@ -57,14 +66,15 @@ func ChatWebSocketHandler(hub *Hub) http.HandlerFunc {
 			send:     make(chan []byte, sendBufferSize),
 			userID:   userID,
 			username: user.Username,
+			roomID:   roomID,
 		}
 
-		// Register client with hub
-		hub.register <- client
+		// Register client with hub and room
+		hub.register <- &ClientRegistration{client: client, roomID: roomID}
 
 		// Send message history
 		go func() {
-			if err := sendMessageHistory(client, db); err != nil {
+			if err := sendMessageHistory(client, db, roomID); err != nil {
 				log.Printf("Error sending message history: %v", err)
 			}
 		}()
@@ -76,15 +86,8 @@ func ChatWebSocketHandler(hub *Hub) http.HandlerFunc {
 }
 
 // sendMessageHistory sends the recent chat history to a newly connected client
-func sendMessageHistory(client *Client, db *repository.Postgres) error {
+func sendMessageHistory(client *Client, db *repository.Postgres, roomID int) error {
 	ctx := context.Background()
-
-	// Get lobby room ID
-	roomID, err := db.GetLobbyRoomID(ctx)
-	if err != nil {
-		log.Printf("Error getting lobby room ID: %v", err)
-		return err
-	}
 
 	// Get recent messages (last 50)
 	messages, err := db.GetRecentMessages(ctx, roomID, 50)
@@ -175,16 +178,8 @@ func handleSendMessage(client *Client, data json.RawMessage) {
 	db := repository.GetDB()
 	ctx := context.Background()
 
-	// Get lobby room ID
-	roomID, err := db.GetLobbyRoomID(ctx)
-	if err != nil {
-		log.Printf("Error getting lobby room ID: %v", err)
-		sendErrorToClient(client, "Failed to send message")
-		return
-	}
-
-	// Save message to database
-	savedMsg, err := db.SaveChatMessage(ctx, roomID, client.userID, message)
+	// Save message to database (using client's room)
+	savedMsg, err := db.SaveChatMessage(ctx, client.roomID, client.userID, message)
 	if err != nil {
 		log.Printf("Error saving message: %v", err)
 		sendErrorToClient(client, "Failed to send message")
@@ -217,8 +212,11 @@ func handleSendMessage(client *Client, data json.RawMessage) {
 		return
 	}
 
-	// Broadcast to all connected clients
-	client.hub.broadcast <- &BroadcastMessage{data: msgBytes}
+	// Broadcast to all clients in this room
+	client.hub.broadcast <- &BroadcastMessage{
+		roomID: client.roomID,
+		data:   msgBytes,
+	}
 }
 
 // sendErrorToClient sends an error message to a specific client
@@ -248,6 +246,95 @@ func sendErrorToClient(client *Client, errorMsg string) {
 	case client.send <- msgBytes:
 	default:
 		log.Printf("Failed to send error message to client %d, channel full", client.userID)
+	}
+}
+
+// GameChatWebSocketHandler upgrades HTTP connections to WebSocket for game-specific chat
+func GameChatWebSocketHandler(hub *Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// User is already authenticated by SessionMiddleware
+		userID, ok := util.GetUserIDFromContext(r.Context())
+		if !ok {
+			util.ErrorResponse(w, http.StatusUnauthorized, "Not authenticated")
+			return
+		}
+
+		// Extract gameID from URL path (/api/v1/games/{gameId}/ws)
+		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		if len(pathParts) < 4 {
+			util.ErrorResponse(w, http.StatusBadRequest, "Invalid game ID")
+			return
+		}
+
+		gameID, err := strconv.Atoi(pathParts[3])
+		if err != nil {
+			util.ErrorResponse(w, http.StatusBadRequest, "Invalid game ID")
+			return
+		}
+
+		// Get database instance
+		db := repository.GetDB()
+
+		// Get user info
+		user, err := db.GetUserByID(r.Context(), userID)
+		if err != nil {
+			log.Printf("Error getting user: %v", err)
+			util.ErrorResponse(w, http.StatusInternalServerError, "Failed to get user")
+			return
+		}
+
+		// Get game and verify user is a player
+		game, err := db.GetGameByID(r.Context(), gameID)
+		if err != nil {
+			log.Printf("Error getting game: %v", err)
+			util.ErrorResponse(w, http.StatusNotFound, "Game not found")
+			return
+		}
+
+		// Verify user is a player in this game
+		if game.Player1ID != userID && game.Player2ID != userID {
+			util.ErrorResponse(w, http.StatusForbidden, "Not a player in this game")
+			return
+		}
+
+		// Get or create game chat room
+		roomID, err := db.GetOrCreateGameChatRoom(r.Context(), gameID)
+		if err != nil {
+			log.Printf("Error getting game chat room: %v", err)
+			util.ErrorResponse(w, http.StatusInternalServerError, "Failed to get game chat room")
+			return
+		}
+
+		// Upgrade connection to WebSocket
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Printf("Error upgrading connection: %v", err)
+			return
+		}
+
+		// Create client
+		client := &Client{
+			hub:      hub,
+			conn:     conn,
+			send:     make(chan []byte, sendBufferSize),
+			userID:   userID,
+			username: user.Username,
+			roomID:   roomID,
+		}
+
+		// Register client with hub and room
+		hub.register <- &ClientRegistration{client: client, roomID: roomID}
+
+		// Send message history
+		go func() {
+			if err := sendMessageHistory(client, db, roomID); err != nil {
+				log.Printf("Error sending message history: %v", err)
+			}
+		}()
+
+		// Start client's goroutines
+		go client.writePump()
+		go client.readPump()
 	}
 }
 

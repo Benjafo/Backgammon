@@ -1,22 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useChatContext } from "@/contexts/ChatContext";
+import type { ChatMessage, ConnectionStatus } from "@/types/chat";
 import { useEffect, useRef, useState } from "react";
 
 interface ChatPanelProps {
     currentUsername: string;
+    messages: ChatMessage[];
+    connectionStatus: ConnectionStatus;
+    error: string | null;
+    sendMessage: (message: string) => boolean;
+    title?: string;
+    subtitle?: string;
 }
 
-export default function ChatPanel({ currentUsername }: ChatPanelProps) {
-    const { messages, connectionStatus, error, sendMessage } = useChatContext();
+export default function ChatPanel({
+    currentUsername,
+    messages,
+    connectionStatus,
+    error,
+    sendMessage,
+    title = "Lounge Chat",
+    subtitle = "Chat with other players",
+}: ChatPanelProps) {
     const [newMessage, setNewMessage] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll to bottom when new messages arrive (use auto to prevent infinite loop)
     useEffect(() => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
         }
     }, [messages]);
 
@@ -70,16 +83,16 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-black/50 backdrop-blur-sm">
+        <div className="flex flex-col h-full bg-black/50 backdrop-blur-sm overflow-hidden">
             {/* Header */}
             <div className="border-b border-gold/20 px-4 py-4 bg-black/40">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="font-heading font-bold text-lg text-gold-light">
-                            Lounge Chat
+                            {title}
                         </h2>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Chat with other players
+                            {subtitle}
                         </p>
                     </div>
                     {/* Connection Status Indicator */}
@@ -101,7 +114,11 @@ export default function ChatPanel({ currentUsername }: ChatPanelProps) {
             {/* Messages Area */}
             <div
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 custom-scrollbar"
+                style={{
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#3f3f46 transparent",
+                }}
             >
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full">

@@ -28,6 +28,7 @@ export function useGameWebSocket({
     const retryDelay = useRef(INITIAL_RETRY_DELAY);
     const shouldReconnect = useRef(true);
     const isManualClose = useRef(false);
+    const isConnecting = useRef(false); // Prevent duplicate connections in StrictMode
 
     const connect = useCallback(() => {
         if (!gameId) {
@@ -37,10 +38,13 @@ export function useGameWebSocket({
 
         if (
             ws.current?.readyState === WebSocket.OPEN ||
-            ws.current?.readyState === WebSocket.CONNECTING
+            ws.current?.readyState === WebSocket.CONNECTING ||
+            isConnecting.current
         ) {
             return;
         }
+
+        isConnecting.current = true;
 
         setStatus("connecting");
 
@@ -55,6 +59,7 @@ export function useGameWebSocket({
                 console.log(`Game chat WebSocket connected (game ${gameId})`);
                 setStatus("connected");
                 retryDelay.current = INITIAL_RETRY_DELAY; // Reset retry delay on successful connection
+                isConnecting.current = false;
                 if (onOpen) onOpen();
             };
 
@@ -71,6 +76,7 @@ export function useGameWebSocket({
                 console.log("Game chat WebSocket disconnected", event.code, event.reason);
                 setStatus("disconnected");
                 ws.current = null;
+                isConnecting.current = false;
 
                 if (onClose) onClose();
 
@@ -95,6 +101,7 @@ export function useGameWebSocket({
         } catch (error) {
             console.error("Error creating game chat WebSocket:", error);
             setStatus("error");
+            isConnecting.current = false;
         }
     }, [gameId, onMessage, onOpen, onClose, onError]);
 

@@ -37,18 +37,42 @@ func (pg *Postgres) GetLobbyRoomID(ctx context.Context) (int, error) {
 
 // EnsureLobbyRoomExists creates the lobby chat room if it doesn't exist
 func (pg *Postgres) EnsureLobbyRoomExists(ctx context.Context) (int, error) {
+	// First, try to get the existing lobby room
+	roomID, err := pg.GetLobbyRoomID(ctx)
+	if err == nil {
+		return roomID, nil
+	}
+
+	// If not found, create it
 	query := `
 		INSERT INTO CHAT_ROOM (room_type, game_id)
 		VALUES ('lobby', NULL)
-		ON CONFLICT DO NOTHING
 		RETURNING room_id
 	`
 
-	var roomID int
-	err := pg.db.QueryRow(ctx, query).Scan(&roomID)
+	err = pg.db.QueryRow(ctx, query).Scan(&roomID)
 	if err != nil {
-		// If no rows returned (room already exists), fetch the existing room_id
-		return pg.GetLobbyRoomID(ctx)
+		return 0, fmt.Errorf("failed to create lobby room: %w", err)
+	}
+
+	return roomID, nil
+}
+
+// GetOrCreateGameChatRoom gets or creates a chat room for a specific game
+func (pg *Postgres) GetOrCreateGameChatRoom(ctx context.Context, gameID int) (int, error) {
+	// Try to get existing room
+	query := `SELECT room_id FROM CHAT_ROOM WHERE room_type = 'game' AND game_id = $1`
+	var roomID int
+	err := pg.db.QueryRow(ctx, query, gameID).Scan(&roomID)
+	if err == nil {
+		return roomID, nil
+	}
+
+	// Create new room if not exists
+	insertQuery := `INSERT INTO CHAT_ROOM (room_type, game_id) VALUES ('game', $1) RETURNING room_id`
+	err = pg.db.QueryRow(ctx, insertQuery, gameID).Scan(&roomID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create game chat room: %w", err)
 	}
 
 	return roomID, nil

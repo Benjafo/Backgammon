@@ -21,14 +21,18 @@ export function useWebSocket({ onMessage, onOpen, onClose, onError, enabled = tr
     const retryDelay = useRef(INITIAL_RETRY_DELAY);
     const shouldReconnect = useRef(true);
     const isManualClose = useRef(false);
+    const isConnecting = useRef(false); // Prevent duplicate connections in StrictMode
 
     const connect = useCallback(() => {
         if (
             ws.current?.readyState === WebSocket.OPEN ||
-            ws.current?.readyState === WebSocket.CONNECTING
+            ws.current?.readyState === WebSocket.CONNECTING ||
+            isConnecting.current
         ) {
             return;
         }
+
+        isConnecting.current = true;
 
         setStatus("connecting");
 
@@ -43,6 +47,7 @@ export function useWebSocket({ onMessage, onOpen, onClose, onError, enabled = tr
                 console.log("WebSocket connected");
                 setStatus("connected");
                 retryDelay.current = INITIAL_RETRY_DELAY; // Reset retry delay on successful connection
+                isConnecting.current = false;
                 if (onOpen) onOpen();
             };
 
@@ -59,6 +64,7 @@ export function useWebSocket({ onMessage, onOpen, onClose, onError, enabled = tr
                 console.log("WebSocket disconnected", event.code, event.reason);
                 setStatus("disconnected");
                 ws.current = null;
+                isConnecting.current = false;
 
                 if (onClose) onClose();
 
@@ -83,6 +89,7 @@ export function useWebSocket({ onMessage, onOpen, onClose, onError, enabled = tr
         } catch (error) {
             console.error("Error creating WebSocket:", error);
             setStatus("error");
+            isConnecting.current = false;
         }
     }, [onMessage, onOpen, onClose, onError]);
 

@@ -13,6 +13,7 @@ import {
 import ChatPanel from "@/components/common/ChatPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatContext } from "@/contexts/ChatContext";
 import type { GameData } from "@/types/game";
 import { type Invitation, type LobbyUser } from "@/types/lobby";
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 export default function LobbyPage() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const { messages, connectionStatus, error: chatError, sendMessage } = useChatContext();
 
     const [onlineUsers, setOnlineUsers] = useState<LobbyUser[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
@@ -571,7 +573,13 @@ export default function LobbyPage() {
                 {/* Right Panel - Chat */}
                 {isChatOpen && (
                     <div className="w-80 flex-shrink-0 border-l bg-card/30">
-                        <ChatPanel currentUsername={user?.username || "Guest"} />
+                        <ChatPanel
+                            currentUsername={user?.username || "Guest"}
+                            messages={messages}
+                            connectionStatus={connectionStatus}
+                            error={chatError}
+                            sendMessage={sendMessage}
+                        />
                     </div>
                 )}
             </div>

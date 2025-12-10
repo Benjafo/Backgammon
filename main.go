@@ -75,7 +75,14 @@ func main() {
 
 	// Game endpoints
 	protectedMux.HandleFunc("/api/v1/games/active", service.ActiveGamesHandler)
-	protectedMux.HandleFunc("/api/v1/games/", service.GameRouterHandler)
+	protectedMux.HandleFunc("/api/v1/games/", func(w http.ResponseWriter, r *http.Request) {
+		// Route to game chat WebSocket if path ends with /ws
+		if len(r.URL.Path) > 3 && r.URL.Path[len(r.URL.Path)-3:] == "/ws" {
+			service.GameChatWebSocketHandler(chatHub)(w, r)
+		} else {
+			service.GameRouterHandler(w, r)
+		}
+	})
 
 	// Chat endpoints
 	protectedMux.HandleFunc("/api/v1/lobby/ws", service.ChatWebSocketHandler(chatHub))

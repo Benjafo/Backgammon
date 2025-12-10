@@ -33,12 +33,19 @@ type Client struct {
 	send     chan []byte
 	userID   int
 	username string
+	roomID   int // Which chat room this client is in
 }
 
-// BroadcastMessage represents a message to be broadcast to clients
+// ClientRegistration wraps a client with its room information for registration
+type ClientRegistration struct {
+	client *Client
+	roomID int
+}
+
+// BroadcastMessage represents a message to be broadcast to clients in a room
 type BroadcastMessage struct {
-	data    []byte
-	exclude *Client // Optional: exclude this client from broadcast
+	roomID int    // Which room to broadcast to
+	data   []byte
 }
 
 // Hub maintains the set of active clients and broadcasts messages
@@ -46,14 +53,17 @@ type Hub struct {
 	// Registered clients (map[userID][]*Client to support multiple connections per user)
 	clients map[int][]*Client
 
+	// Rooms (map[roomID]map[*Client]bool for fast lookup)
+	rooms map[int]map[*Client]bool
+
 	// Inbound messages from the clients
 	broadcast chan *BroadcastMessage
 
 	// Register requests from the clients
-	register chan *Client
+	register chan *ClientRegistration
 
 	// Unregister requests from clients
-	unregister chan *Client
+	unregister chan *ClientRegistration
 
 	// Mutex for thread-safe access to clients map
 	mu sync.RWMutex
@@ -63,9 +73,10 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan *BroadcastMessage, 256),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		register:   make(chan *ClientRegistration),
+		unregister: make(chan *ClientRegistration),
 		clients:    make(map[int][]*Client),
+		rooms:      make(map[int]map[*Client]bool),
 	}
 }
 
@@ -73,11 +84,11 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
-			h.registerClient(client)
+		case reg := <-h.register:
+			h.registerClient(reg.client, reg.roomID)
 
-		case client := <-h.unregister:
-			h.unregisterClient(client)
+		case reg := <-h.unregister:
+			h.unregisterClient(reg.client, reg.roomID)
 
 		case message := <-h.broadcast:
 			h.broadcastMessage(message)
@@ -85,18 +96,24 @@ func (h *Hub) Run() {
 	}
 }
 
-// registerClient adds a client to the hub and broadcasts user_joined
-func (h *Hub) registerClient(client *Client) {
+// registerClient adds a client to the hub and room, and broadcasts user_joined
+func (h *Hub) registerClient(client *Client, roomID int) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	// Add client to the user's connection list
 	h.clients[client.userID] = append(h.clients[client.userID], client)
 
-	log.Printf("User %s (ID: %d) connected. Total clients for this user: %d",
-		client.username, client.userID, len(h.clients[client.userID]))
+	// Add client to the room
+	if h.rooms[roomID] == nil {
+		h.rooms[roomID] = make(map[*Client]bool)
+	}
+	h.rooms[roomID][client] = true
 
-	// Broadcast user_joined notification to all other clients
+	log.Printf("User %s (ID: %d) connected to room %d. Total clients for this user: %d",
+		client.username, client.userID, roomID, len(h.clients[client.userID]))
+
+	// Broadcast user_joined notification to other clients in the same room
 	userData := UserEventData{
 		UserID:   client.userID,
 		Username: client.username,
@@ -119,19 +136,27 @@ func (h *Hub) registerClient(client *Client) {
 		return
 	}
 
-	// Broadcast to all clients except the newly connected one
+	// Broadcast to clients in the same room
 	h.mu.Unlock()
 	h.broadcast <- &BroadcastMessage{
-		data:    msgBytes,
-		exclude: client,
+		roomID: roomID,
+		data:   msgBytes,
 	}
 	h.mu.Lock()
 }
 
-// unregisterClient removes a client from the hub and broadcasts user_left
-func (h *Hub) unregisterClient(client *Client) {
+// unregisterClient removes a client from the hub and room, and broadcasts user_left
+func (h *Hub) unregisterClient(client *Client, roomID int) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
+	// Remove client from room
+	if h.rooms[roomID] != nil {
+		delete(h.rooms[roomID], client)
+		if len(h.rooms[roomID]) == 0 {
+			delete(h.rooms, roomID)
+		}
+	}
 
 	// Find and remove the specific client from the user's connection list
 	connections := h.clients[client.userID]
@@ -143,13 +168,20 @@ func (h *Hub) unregisterClient(client *Client) {
 		}
 	}
 
-	// If no more connections for this user, remove the user entry and broadcast user_left
-	if len(h.clients[client.userID]) == 0 {
-		delete(h.clients, client.userID)
+	// Check if user has any other connections in this room
+	hasOtherConnectionsInRoom := false
+	for _, conn := range h.clients[client.userID] {
+		if conn.roomID == roomID {
+			hasOtherConnectionsInRoom = true
+			break
+		}
+	}
 
-		log.Printf("User %s (ID: %d) disconnected. All connections closed.", client.username, client.userID)
+	// Broadcast user_left only if user has no other connections in this room
+	if !hasOtherConnectionsInRoom {
+		log.Printf("User %s (ID: %d) disconnected from room %d", client.username, client.userID, roomID)
 
-		// Broadcast user_left notification
+		// Broadcast user_left notification to this room
 		userData := UserEventData{
 			UserID:   client.userID,
 			Username: client.username,
@@ -173,35 +205,42 @@ func (h *Hub) unregisterClient(client *Client) {
 		}
 
 		h.mu.Unlock()
-		h.broadcast <- &BroadcastMessage{data: msgBytes}
+		h.broadcast <- &BroadcastMessage{
+			roomID: roomID,
+			data:   msgBytes,
+		}
 		h.mu.Lock()
-	} else {
-		log.Printf("User %s (ID: %d) connection closed. Remaining connections: %d",
-			client.username, client.userID, len(h.clients[client.userID]))
+	}
+
+	// If no more connections for this user at all, remove the user entry
+	if len(h.clients[client.userID]) == 0 {
+		delete(h.clients, client.userID)
+		log.Printf("User %s (ID: %d) all connections closed", client.username, client.userID)
 	}
 
 	// Close the client's send channel
 	close(client.send)
 }
 
-// broadcastMessage sends a message to all connected clients
+// broadcastMessage sends a message to all clients in the specified room
 func (h *Hub) broadcastMessage(message *BroadcastMessage) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	for _, connections := range h.clients {
-		for _, client := range connections {
-			// Skip if this is the excluded client
-			if message.exclude != nil && client == message.exclude {
-				continue
-			}
+	// Get clients in the specified room
+	roomClients := h.rooms[message.roomID]
+	if roomClients == nil {
+		return // Room doesn't exist or has no clients
+	}
 
-			select {
-			case client.send <- message.data:
-			default:
-				// Channel is full or closed, skip this client
-				log.Printf("Failed to send message to user %d, send channel full or closed", client.userID)
-			}
+	// Send message to all clients in the room
+	for client := range roomClients {
+		select {
+		case client.send <- message.data:
+		default:
+			// Channel is full or closed, skip this client
+			log.Printf("Failed to send message to user %d in room %d, send channel full or closed",
+				client.userID, message.roomID)
 		}
 	}
 }
@@ -209,7 +248,7 @@ func (h *Hub) broadcastMessage(message *BroadcastMessage) {
 // readPump pumps messages from the WebSocket connection to the hub
 func (c *Client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
+		c.hub.unregister <- &ClientRegistration{client: c, roomID: c.roomID}
 		c.conn.Close()
 	}()
 
