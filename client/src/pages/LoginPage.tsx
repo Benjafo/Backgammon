@@ -37,7 +37,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-mahogany warm-lighting">
+        <div className="flex items-center justify-center min-h-screen bg-felt felt-texture">
             <Card className="w-full max-w-md border-gold/30 shadow-gold">
                 <CardHeader>
                     <CardTitle className="font-display text-2xl text-gold-light">Welcome Back</CardTitle>

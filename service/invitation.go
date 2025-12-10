@@ -252,6 +252,14 @@ func AcceptInvitationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-start the game immediately
+	err = db.StartGame(r.Context(), gameID)
+	if err != nil {
+		log.Printf("Failed to start game: %v", err)
+		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to start game")
+		return
+	}
+
 	// Remove both users from lobby (they're now in a game)
 	_ = db.LeaveLobby(r.Context(), invitation.ChallengerID)
 	_ = db.LeaveLobby(r.Context(), invitation.ChallengedID)
