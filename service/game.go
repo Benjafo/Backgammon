@@ -46,12 +46,6 @@ func GameRouterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// /api/v1/games/{id}/start - POST
-	if strings.HasSuffix(path, "/start") && r.Method == http.MethodPost {
-		StartGameHandler(w, r)
-		return
-	}
-
 	// /api/v1/games/{id} - GET
 	if r.Method == http.MethodGet {
 		GameHandler(w, r)
@@ -179,59 +173,6 @@ func ForfeitHandler(w http.ResponseWriter, r *http.Request) {
 
 	util.JSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Game forfeited successfully",
-	})
-}
-
-// Start a pending game
-func StartGameHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		util.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
-		return
-	}
-
-	db := repository.GetDB()
-	if db == nil {
-		util.ErrorResponse(w, http.StatusInternalServerError, "Database not initialized")
-		return
-	}
-
-	// Get current user ID from context
-	userID, ok := util.GetUserIDFromContext(r.Context())
-	if !ok {
-		util.ErrorResponse(w, http.StatusUnauthorized, "User not authenticated")
-		return
-	}
-
-	// Parse game ID from URL path
-	gameID, err := parseGameIDFromPath(strings.TrimSuffix(r.URL.Path, "/start"))
-	if err != nil {
-		util.ErrorResponse(w, http.StatusBadRequest, "Invalid game ID")
-		return
-	}
-
-	// Get game details
-	game, err := db.GetGameByID(r.Context(), gameID)
-	if err != nil {
-		util.ErrorResponse(w, http.StatusNotFound, "Game not found")
-		return
-	}
-
-	// Verify user is a player in this game
-	if game.Player1ID != userID && game.Player2ID != userID {
-		util.ErrorResponse(w, http.StatusForbidden, "You are not a player in this game")
-		return
-	}
-
-	// Start the game
-	err = db.StartGame(r.Context(), gameID)
-	if err != nil {
-		log.Printf("Failed to start game: %v", err)
-		util.ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	util.JSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Game started successfully",
 	})
 }
 

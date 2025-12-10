@@ -5,7 +5,6 @@ import {
     getLegalMoves,
     makeMove,
     rollDice,
-    startGame,
 } from "@/api/game";
 import ChatPanel from "@/components/common/ChatPanel";
 import BackgammonBoard from "@/components/game/BackgammonBoard";
@@ -147,21 +146,6 @@ export default function GamePage() {
 
         return () => clearInterval(pollInterval);
     }, [gameId, gameData?.gameStatus]);
-
-    const handleStartGame = async () => {
-        if (!gameId) return;
-        setActionLoading(true);
-        try {
-            await startGame(parseInt(gameId));
-            await fetchGameData();
-            await fetchGameState();
-        } catch (err) {
-            console.error("Failed to start game:", err);
-            alert(err instanceof Error ? err.message : "Failed to start game");
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     const handleRollDice = async () => {
         if (!gameId) return;
@@ -334,7 +318,7 @@ export default function GamePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting flex items-center justify-center">
+            <div className="min-h-screen bg-felt felt-texture flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-gold/20 border-t-gold mx-auto mb-4" />
                     <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">
@@ -348,7 +332,7 @@ export default function GamePage() {
 
     if (!gameData) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting flex items-center justify-center">
+            <div className="min-h-screen bg-felt felt-texture flex items-center justify-center">
                 <Card className="border-destructive shadow-gold">
                     <CardContent className="pt-6">
                         <p className="text-destructive">Failed to load game data</p>
@@ -370,7 +354,7 @@ export default function GamePage() {
 
     return (
         <GameChatProvider gameId={gameId ? parseInt(gameId) : null}>
-            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4 pr-[336px]">
+            <div className="min-h-screen bg-felt felt-texture p-4 pr-[336px]">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-center mb-4">
                         <div>
@@ -395,7 +379,7 @@ export default function GamePage() {
                     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
                         {/* Board */}
                         <div className="lg:col-span-1">
-                            {gameState && gameData.gameStatus !== "pending" ? (
+                            {gameState ? (
                                 <BackgammonBoard
                                     gameState={gameState}
                                     myColor={myColor}
@@ -407,7 +391,7 @@ export default function GamePage() {
                                 />
                             ) : (
                                 <div className="border-2 border-dashed rounded-lg p-12 text-center">
-                                    <p className="text-muted-foreground">Game not started yet</p>
+                                    <p className="text-muted-foreground">Loading game board...</p>
                                 </div>
                             )}
                         </div>
@@ -415,7 +399,7 @@ export default function GamePage() {
                         {/* Sidebar */}
                         <div className="space-y-4">
                             {/* Game Status */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Status</CardTitle>
                                     <CardDescription className="capitalize">
@@ -463,23 +447,11 @@ export default function GamePage() {
                             </Card>
 
                             {/* Actions */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Actions</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    {gameData.gameStatus === "pending" && (
-                                        <Button
-                                            onClick={handleStartGame}
-                                            disabled={actionLoading}
-                                            variant="casino"
-                                            className="w-full"
-                                            size="sm"
-                                        >
-                                            Start Game
-                                        </Button>
-                                    )}
-
                                     {isGameActive && isMyTurn && !gameState?.diceRoll && (
                                         <Button
                                             onClick={handleRollDice}
@@ -539,7 +511,7 @@ export default function GamePage() {
                             </Card>
 
                             {/* Info */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Info</CardTitle>
                                 </CardHeader>

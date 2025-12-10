@@ -1,12 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,19 +52,20 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-mahogany warm-lighting">
-            <Card className="w-full max-w-md border-gold/30 shadow-gold">
+        <div className="flex items-center justify-center min-h-screen bg-felt felt-texture">
+            <Card className="w-full max-w-md bg-black/60 backdrop-blur-sm border-2 border-gold shadow-lg">
                 <CardHeader>
-                    <CardTitle className="font-display text-2xl text-gold-light">Create an Account</CardTitle>
-                    <CardDescription>Register to start playing Backgammon</CardDescription>
+                    <CardTitle className="font-display text-2xl text-gold-light">
+                        Create an Account
+                    </CardTitle>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        {tokenError && (
-                            <p className="text-sm text-destructive">{tokenError}</p>
-                        )}
+                        {tokenError && <p className="text-sm text-destructive">{tokenError}</p>}
                         {!token && !tokenError && (
-                            <p className="text-sm text-muted-foreground">Loading registration form...</p>
+                            <p className="text-sm text-muted-foreground">
+                                Loading registration form...
+                            </p>
                         )}
                         <div className="space-y-2">
                             <Label htmlFor="username">Username</Label>
@@ -100,12 +94,20 @@ export default function RegisterPage() {
                         {error && <p className="text-sm text-destructive">{error}</p>}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" variant="casino" className="w-full" disabled={loading || !token}>
+                        <Button
+                            type="submit"
+                            variant="casino"
+                            className="w-full"
+                            disabled={loading || !token}
+                        >
                             {!token ? "Loading..." : loading ? "Creating account..." : "Register"}
                         </Button>
                         <p className="text-sm text-center text-muted-foreground">
                             Already have an account?{" "}
-                            <Link to="/login" className="text-gold-light hover:underline font-semibold">
+                            <Link
+                                to="/login"
+                                className="text-gold-light hover:underline font-semibold"
+                            >
                                 Login
                             </Link>
                         </p>

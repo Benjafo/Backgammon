@@ -30,19 +30,6 @@ export async function forfeitGame(gameId: number): Promise<void> {
   }
 }
 
-// Start a game (change status from pending to in_progress)
-export async function startGame(gameId: number): Promise<void> {
-  const response = await fetch(`${API_BASE}/games/${gameId}/start`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to start game');
-  }
-}
-
 // Get all active games for the current user
 export async function getActiveGames(): Promise<GameData[]> {
   const response = await fetch(`${API_BASE}/games/active`, {
