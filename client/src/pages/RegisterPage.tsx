@@ -3,16 +3,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatAuthError, type FormattedError } from "@/lib/errors";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useState<FormattedError | null>(null);
     const [loading, setLoading] = useState(false);
     const [token, setToken] = useState<string | null>(null);
-    const [tokenError, setTokenError] = useState<string | null>(null);
+    const [tokenError, setTokenError] = useState<FormattedError | null>(null);
     const { register, fetchRegistrationToken } = useAuth();
     const navigate = useNavigate();
 
@@ -22,7 +23,8 @@ export default function RegisterPage() {
                 const newToken = await fetchRegistrationToken();
                 setToken(newToken);
             } catch (err) {
-                setTokenError("Failed to load registration form. Please refresh the page.");
+                const formattedError = formatAuthError(err);
+                setTokenError(formattedError);
                 console.error("Failed to fetch registration token:", err);
             }
         };
@@ -32,10 +34,14 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
+        setError(null);
 
         if (!token) {
-            setError("Registration token not loaded. Please refresh the page.");
+            setError({
+                message: "Registration token not loaded",
+                type: "server",
+                suggestion: "Please refresh the page"
+            });
             return;
         }
 
@@ -45,7 +51,8 @@ export default function RegisterPage() {
             await register({ username, password, token });
             navigate("/lobby");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Registration failed");
+            const formattedError = formatAuthError(err);
+            setError(formattedError);
         } finally {
             setLoading(false);
         }
@@ -61,7 +68,18 @@ export default function RegisterPage() {
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        {tokenError && <p className="text-sm text-destructive">{tokenError}</p>}
+                        {tokenError && (
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/50 space-y-1">
+                                <p className="text-sm font-semibold text-destructive">
+                                    {tokenError.message}
+                                </p>
+                                {tokenError.suggestion && (
+                                    <p className="text-xs text-destructive/80">
+                                        {tokenError.suggestion}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         {!token && !tokenError && (
                             <p className="text-sm text-muted-foreground">
                                 Loading registration form...
@@ -91,7 +109,18 @@ export default function RegisterPage() {
                                 disabled={loading || !token}
                             />
                         </div>
-                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/50 space-y-1">
+                                <p className="text-sm font-semibold text-destructive">
+                                    {error.message}
+                                </p>
+                                {error.suggestion && (
+                                    <p className="text-xs text-destructive/80">
+                                        {error.suggestion}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
                         <Button
