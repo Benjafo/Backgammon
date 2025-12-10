@@ -399,7 +399,7 @@ export default function GamePage() {
                         {/* Sidebar */}
                         <div className="space-y-4">
                             {/* Game Status */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Status</CardTitle>
                                     <CardDescription className="capitalize">
@@ -447,7 +447,7 @@ export default function GamePage() {
                             </Card>
 
                             {/* Actions */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Actions</CardTitle>
                                 </CardHeader>
@@ -511,7 +511,7 @@ export default function GamePage() {
                             </Card>
 
                             {/* Info */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60">
+                            <Card className="bg-black/60 backdrop-blur-sm border-2 border-gold">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg">Info</CardTitle>
                                 </CardHeader>

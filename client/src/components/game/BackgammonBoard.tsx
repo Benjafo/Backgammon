@@ -655,8 +655,8 @@ export default function BackgammonBoard({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
         >
-            {/* Board background - Casino felt */}
-            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="hsl(var(--felt))" />
+            {/* Board background - Dark mahogany wood */}
+            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="hsl(18 52% 12%)" />
 
             {/* Directional arrows */}
             {renderDirectionalArrows()}

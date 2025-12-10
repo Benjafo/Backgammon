@@ -177,7 +177,7 @@ export default function LobbyPage() {
         <div className="min-h-screen bg-felt felt-texture flex flex-col">
             {/* Header */}
             <div className="border-b border-gold/20 bg-card/50 backdrop-blur-sm shadow-raised">
-                <div className="max-w-full px-6 py-4 flex justify-between items-center">
+                <div className="max-w-full px-6 py-4 pr-[336px] flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div>
                             <h1 className="text-3xl font-display font-bold text-gold-light tracking-wide">
