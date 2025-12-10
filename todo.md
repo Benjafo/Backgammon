@@ -1,8 +1,5 @@
 TODO
 
-[] Missing logout button on lobby
-[] Styling for game board and auth pages should be improved
-[] It should be a bit more obvious where the board ends
 [] Check for working in Firefox, Chrome, Safari and Edge
 [] Be complete – try to break your game and solve for these shortcomings ‘cause you know Dean will try to break them!
 
@@ -15,3 +12,6 @@ DONE
 [x] You'll use WebSockets to implement the chat (allowing for bidirectional communication) - Include at least the players' names and messages; you could also include timestamps and other info if you want
 [x] Fix bug where user cannot drag token to sum of dice, and update error message to be more user friendly
 [x] WebSockets and chat for individual games
+[x] Missing logout button on lobby
+[x] Styling for game board and auth pages should be improved
+[x] It should be a bit more obvious where the board ends

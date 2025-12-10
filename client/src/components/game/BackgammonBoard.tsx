@@ -494,6 +494,44 @@ export default function BackgammonBoard({
         return getCheckerColor(checkerCount);
     };
 
+    // Render home board glow for current player
+    const renderHomeBoards = () => {
+        const barX = BOARD_WIDTH / 2 - 25;
+        const barWidth = 50;
+        const homeWidth = POINT_WIDTH * 6; // 6 points wide
+
+        // Calculate position for MY home board only
+        let myHomeX: number;
+
+        if (myColor === "white") {
+            // White home: bottom-right (points 1-6)
+            myHomeX = barX + barWidth;
+        } else {
+            // Black home: bottom-left from black's perspective (points 19-24)
+            myHomeX = barX - homeWidth;
+        }
+
+        // Subtle glow effect behind home board
+        const glowY = GAMEPLAY_BOTTOM - POINT_HEIGHT - 20;
+        const glowHeight = POINT_HEIGHT + 30;
+        const glowColor = myColor === "white" ? "rgba(255, 255, 255, 0.08)" : "rgba(220, 220, 220, 0.08)";
+
+        return (
+            <g>
+                {/* Subtle glow rectangle behind my home board */}
+                <rect
+                    x={myHomeX - 5}
+                    y={glowY}
+                    width={homeWidth + 10}
+                    height={glowHeight}
+                    fill={glowColor}
+                    rx="12"
+                    filter="url(#homeGlow)"
+                />
+            </g>
+        );
+    };
+
     // Render directional arrows showing movement direction
     const renderDirectionalArrows = () => {
         const arrowColor = "hsl(43 60% 58%)"; // Gold color
@@ -640,6 +678,10 @@ export default function BackgammonBoard({
                 <defs>
                     {arrowMarker("arrow-right")}
                     {arrowMarker("arrow-left")}
+                    {/* Glow filter for home board */}
+                    <filter id="homeGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
+                    </filter>
                 </defs>
                 {topArrows}
                 {bottomArrows}
@@ -657,6 +699,9 @@ export default function BackgammonBoard({
         >
             {/* Board background - Dark mahogany wood */}
             <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="hsl(18 52% 12%)" />
+
+            {/* Home board highlights */}
+            {renderHomeBoards()}
 
             {/* Directional arrows */}
             {renderDirectionalArrows()}
