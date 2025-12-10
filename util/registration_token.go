@@ -21,14 +21,14 @@ const (
 	IP_ENCODED_LENGTH        = 12  // Fixed length for encoded IP
 	TIMESTAMP_ENCODED_LENGTH = 10  // Fixed length for encoded timestamp
 	USER_AGENT_CHARS         = 6   // Number of chars to extract from User-Agent
-	RANDOM_PADDING_LENGTH    = 8   // Random padding length
+	RANDOM_PADDING_LENGTH    = 4   // Random padding length (reduced to fit in 32 chars)
 )
 
 var interleavePositions = map[string][]int{
 	"ip":        {2, 7, 11, 15, 19, 23, 27, 31, 4, 8, 12, 16},
 	"timestamp": {0, 5, 9, 13, 17, 21, 25, 29, 3, 6},
 	"useragent": {1, 10, 14, 18, 22, 26},
-	"random":    {20, 24, 28, 30, 32, 33, 34, 35},
+	"random":    {20, 24, 28, 30}, // Reduced to 4 positions (indices 0-31 only)
 }
 
 type TokenData struct {

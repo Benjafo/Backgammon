@@ -92,19 +92,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate token structure and embedded data
+	// Validate token structure and embedded data (but don't consume it yet)
 	clientIP := util.GetClientIP(r)
 	_, regErr := util.ValidateRegistrationTokenStructure(req.Token, clientIP, r.UserAgent())
 	if regErr != nil {
 		log.Printf("Token validation failed: %v", regErr)
 		util.ErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid registration token: %v", regErr))
-		return
-	}
-
-	// Check token in database
-	if err := db.ValidateAndUseRegistrationToken(r.Context(), req.Token); err != nil {
-		log.Printf("Token database validation failed: %v", err)
-		util.ErrorResponse(w, http.StatusUnauthorized, "Invalid or expired registration token")
 		return
 	}
 
@@ -120,6 +113,13 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Failed to hash password: %v", err)
 		util.ErrorResponse(w, http.StatusInternalServerError, "Failed to create account")
+		return
+	}
+
+	// All validations passed - now consume the token
+	if err := db.ValidateAndUseRegistrationToken(r.Context(), req.Token); err != nil {
+		log.Printf("Token database validation failed: %v", err)
+		util.ErrorResponse(w, http.StatusUnauthorized, "Invalid or expired registration token")
 		return
 	}
 

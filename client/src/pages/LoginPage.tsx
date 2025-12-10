@@ -3,27 +3,29 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatAuthError, type FormattedError } from "@/lib/errors";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useState<FormattedError | null>(null);
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
+        setError(null);
         setLoading(true);
 
         try {
             await login({ username, password });
             navigate("/lobby");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Invalid credentials");
+            const formattedError = formatAuthError(err);
+            setError(formattedError);
         } finally {
             setLoading(false);
         }
@@ -63,7 +65,18 @@ export default function LoginPage() {
                                 disabled={loading}
                             />
                         </div>
-                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/50 space-y-1">
+                                <p className="text-sm font-semibold text-destructive">
+                                    {error.message}
+                                </p>
+                                {error.suggestion && (
+                                    <p className="text-xs text-destructive/80">
+                                        {error.suggestion}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
                         <Button

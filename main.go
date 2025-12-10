@@ -18,7 +18,7 @@ import (
 var db *repository.Postgres
 
 var (
-	authLimiter = middleware.NewRateLimiter(rate.Every(12*time.Second), 5) // Auth: 5 requests per minute
+	authLimiter = middleware.NewRateLimiter(rate.Every(12*time.Second), 15) // Auth: 15 requests per minute
 	gameLimiter = middleware.NewRateLimiter(rate.Every(2*time.Second), 30) // Game: 30 requests per minute
 	readLimiter = middleware.NewRateLimiter(rate.Every(time.Second), 60) // Reads: 60 requests per minute
 )
