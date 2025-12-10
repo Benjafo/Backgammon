@@ -31,7 +31,6 @@ export default function LobbyPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
-    const [isChatOpen, setIsChatOpen] = useState(true);
 
     // Join lobby on mount, leave on unmount
     useEffect(() => {
@@ -164,7 +163,9 @@ export default function LobbyPage() {
             <div className="min-h-screen bg-felt felt-texture flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-gold/20 border-t-gold mx-auto mb-4" />
-                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">Joining Lobby...</h2>
+                    <h2 className="text-2xl font-display font-bold mb-2 text-gold-light">
+                        Joining Lobby...
+                    </h2>
                     <p className="text-muted-foreground">Please wait</p>
                 </div>
             </div>
@@ -190,27 +191,6 @@ export default function LobbyPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button
-                            onClick={() => setIsChatOpen(!isChatOpen)}
-                            variant="casino"
-                            size="sm"
-                            className="gap-2"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                            Chat
-                        </Button>
                         <Button onClick={logout} variant="destructive" size="sm">
                             Logout
                         </Button>
@@ -225,10 +205,10 @@ export default function LobbyPage() {
                 </div>
             )}
 
-            {/* Main Content - Split Panel Layout */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Left Panel - Main Lobby Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Main Content - With right padding for fixed chat */}
+            <div className="flex-1 overflow-hidden">
+                {/* Main Lobby Content */}
+                <div className="h-full overflow-y-auto p-6 space-y-6 pr-[336px]">
                     {/* Active Games Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
@@ -477,9 +457,7 @@ export default function LobbyPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-heading text-gold">
-                                    Online Players
-                                </h2>
+                                <h2 className="text-xl font-heading text-gold">Online Players</h2>
                                 {onlineUsers.length > 0 && (
                                     <span className="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gold/20 text-gold-light border border-gold/40">
                                         {onlineUsers.length}
@@ -570,18 +548,16 @@ export default function LobbyPage() {
                     </div>
                 </div>
 
-                {/* Right Panel - Chat */}
-                {isChatOpen && (
-                    <div className="w-80 flex-shrink-0 border-l bg-card/30">
-                        <ChatPanel
-                            currentUsername={user?.username || "Guest"}
-                            messages={messages}
-                            connectionStatus={connectionStatus}
-                            error={chatError}
-                            sendMessage={sendMessage}
-                        />
-                    </div>
-                )}
+                {/* Fixed Chat Panel on Right */}
+                <div className="fixed top-0 right-0 bottom-0 w-80 border-l border-gold/20 bg-card/30 backdrop-blur-sm z-40">
+                    <ChatPanel
+                        currentUsername={user?.username || "Guest"}
+                        messages={messages}
+                        connectionStatus={connectionStatus}
+                        error={chatError}
+                        sendMessage={sendMessage}
+                    />
+                </div>
             </div>
         </div>
     );

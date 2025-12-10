@@ -370,7 +370,7 @@ export default function GamePage() {
 
     return (
         <GameChatProvider gameId={gameId ? parseInt(gameId) : null}>
-            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4">
+            <div className="min-h-screen bg-gradient-to-b from-mahogany via-mahogany-dark to-mahogany-light warm-lighting p-4 pr-[336px]">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-center mb-4">
                         <div>
@@ -394,7 +394,7 @@ export default function GamePage() {
 
                     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
                         {/* Board */}
-                        <div>
+                        <div className="lg:col-span-1">
                             {gameState && gameData.gameStatus !== "pending" ? (
                                 <BackgammonBoard
                                     gameState={gameState}
@@ -562,13 +562,13 @@ export default function GamePage() {
                                     )}
                                 </CardContent>
                             </Card>
-
-                            {/* Game Chat */}
-                            <Card className="bg-felt/40 backdrop-blur-sm border-2 border-gold/60 h-[500px] flex flex-col">
-                                <GameChatPanel currentUsername={user?.username || ""} />
-                            </Card>
                         </div>
                     </div>
+                </div>
+
+                {/* Fixed Chat Panel on Right */}
+                <div className="fixed top-0 right-0 bottom-0 w-80 border-l border-gold/20 bg-card/30 backdrop-blur-sm z-40">
+                    <GameChatPanel currentUsername={user?.username || ""} />
                 </div>
             </div>
         </GameChatProvider>
